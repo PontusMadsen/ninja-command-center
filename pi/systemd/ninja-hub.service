@@ -13,7 +13,7 @@ StartLimitIntervalSec=300
 StartLimitBurst=5
 Environment=PYTHONUNBUFFERED=1
 Environment=NODE_ENV=production
-Environment=SDL_FBDEV=/dev/fb1
+Environment=SDL_FBDEV=/dev/fb0
 Environment=SDL_VIDEODRIVER=fbcon
 EnvironmentFile=/home/command-center/ninja-command-center/pi/.env
 
