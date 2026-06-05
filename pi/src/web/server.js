@@ -24,8 +24,14 @@ const PORT = process.env.WEB_PORT || 8888;
 let app = null;
 let ninjaState = null; // set by orchestrator
 
-export function startWebServer(state) {
+export async function startWebServer(state) {
   ninjaState = state;
+
+  const spotify = await import('../integrations/spotify.js');
+  const calendar = await import('../integrations/calendar.js');
+  const mail = await import('../integrations/mail.js');
+  const weather = await import('../integrations/weather.js');
+
   app = express();
   app.use(express.json({ limit: '1mb' }));
 
@@ -656,6 +662,108 @@ export function startWebServer(state) {
       }, 2000);
     });
   });
+
+  // ============ HUB API (for ESP32 screens) ============
+
+  // --- Spotify ---
+  app.get('/api/spotify/auth', (req, res) => {
+    res.redirect(spotify.getAuthUrl());
+  });
+
+  app.get('/api/spotify/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.status(400).send('Missing code');
+    try {
+      await spotify.handleCallback(code);
+      spotify.startPolling();
+      res.send('<h1>Spotify connected!</h1><p>You can close this tab.</p>');
+    } catch (e) {
+      res.status(500).send('Auth failed: ' + e.message);
+    }
+  });
+
+  app.get('/api/spotify/now-playing', (req, res) => {
+    res.json(spotify.getNowPlaying() || { playing: false });
+  });
+
+  app.post('/api/spotify/control', async (req, res) => {
+    const { action } = req.body;
+    if (!['play', 'pause', 'next', 'prev'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+    const ok = await spotify.control(action);
+    res.json({ ok });
+  });
+
+  app.get('/api/spotify/status', (req, res) => {
+    res.json({ connected: spotify.isConnected() });
+  });
+
+  // --- Calendar ---
+  app.get('/api/calendar/events', (req, res) => {
+    res.json({ events: calendar.getEvents() });
+  });
+
+  app.get('/api/calendar/next', (req, res) => {
+    res.json({ event: calendar.getNextEvent() });
+  });
+
+  app.get('/api/calendar/status', (req, res) => {
+    res.json({ connected: calendar.isConnected() });
+  });
+
+  // --- Mail ---
+  app.get('/api/mail/unread', (req, res) => {
+    res.json(mail.getMailState());
+  });
+
+  app.get('/api/mail/status', (req, res) => {
+    res.json({ connected: mail.isConnected() });
+  });
+
+  // --- Weather ---
+  app.get('/api/weather', (req, res) => {
+    res.json(weather.getWeather() || { temp: null });
+  });
+
+  app.get('/api/weather/status', (req, res) => {
+    res.json({ connected: weather.isConnected() });
+  });
+
+  // --- Ninja thought bubble (for OLED) ---
+  let currentThought = { text: '', type: 'idle', timestamp: Date.now() };
+
+  app.get('/api/ninja/thought', (req, res) => {
+    res.json(currentThought);
+  });
+
+  app.post('/api/ninja/thought', (req, res) => {
+    const { text, type } = req.body;
+    currentThought = { text: text || '', type: type || 'haiku', timestamp: Date.now() };
+    res.json({ ok: true });
+  });
+
+  // Expose thought setter for orchestrator
+  ninjaState.setThought = (text, type = 'haiku') => {
+    currentThought = { text, type, timestamp: Date.now() };
+  };
+
+  // --- Combined status for all hub screens ---
+  app.get('/api/hub/status', (req, res) => {
+    res.json({
+      spotify: { connected: spotify.isConnected(), nowPlaying: spotify.getNowPlaying() },
+      calendar: { connected: calendar.isConnected(), next: calendar.getNextEvent(), events: calendar.getEvents() },
+      mail: { connected: mail.isConnected(), ...mail.getMailState() },
+      weather: { connected: weather.isConnected(), ...weather.getWeather() },
+      ninja: { thought: currentThought, face: ninjaState.currentFace },
+    });
+  });
+
+  // Start polling for connected integrations
+  spotify.startPolling();
+  calendar.startPolling();
+  mail.startPolling();
+  weather.startPolling();
 
   app.listen(PORT, '0.0.0.0', () => {
     logger.info({ port: PORT }, 'Web UI running');
