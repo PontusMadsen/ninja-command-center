@@ -3,14 +3,7 @@
 #include <HTTPClient.h>
 #include <TFT_eSPI.h>
 #include <ArduinoJson.h>
-
-// ---------------------------------------------------------------------------
-// Config constants (to be replaced by config.h in Task 11)
-// ---------------------------------------------------------------------------
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASS = "YOUR_WIFI_PASS";
-const char* HUB_HOST  = "http://ninja-hub.local:8888";
-const int   POLL_MS   = 3000;
+#include "config.h"
 
 // ---------------------------------------------------------------------------
 // Colors

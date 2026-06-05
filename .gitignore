@@ -5,3 +5,4 @@ frames
 *.onnx
 google-tts-key.json
 google-calendar-key.json
+esp32/*/src/config.h

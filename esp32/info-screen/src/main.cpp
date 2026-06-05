@@ -5,14 +5,7 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <U8g2lib.h>
-
-// ---------------------------------------------------------------------------
-// Config constants (to be replaced by config.h in Task 11)
-// ---------------------------------------------------------------------------
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASS = "YOUR_WIFI_PASS";
-const char* HUB_HOST  = "http://ninja-hub.local:8888";
-const int   POLL_MS   = 5000;
+#include "config.h"
 
 // ---------------------------------------------------------------------------
 // OLED I2C pins
