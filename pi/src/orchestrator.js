@@ -1,0 +1,250 @@
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { execSync } from 'child_process';
+
+import logger from './logger.js';
+import { readFileSync } from 'fs';
+
+// Display — PiTFT by default, OLED or ESP32 via env
+const DISPLAY_MODE = process.env.DISPLAY_MODE || 'pitft';
+let displayMod;
+if (DISPLAY_MODE === 'pitft') {
+  displayMod = await import('./display-pitft.js');
+} else if (DISPLAY_MODE === 'oled') {
+  displayMod = await import('./oled-display.js');
+} else {
+  displayMod = await import('./display.js');
+}
+const { init: displayInit, setFace, playOnce, close: displayClose } = displayMod;
+const buzz = displayMod.buzz || (() => {});
+
+// Voice pipeline imports
+import { recordAudio } from './audio/record.js';
+import { playFile, speakText } from './audio/playback.js';
+import { transcribe } from './stt/groq.js';
+import { respondStreaming } from './llm/claude-stream.js';
+import { synthesize } from './tts/voicevox.js';
+import WakeWordListener from './wakeword/index.js';
+import { playStockPhrase, preloadStockPhrases } from './audio/stock-phrases.js';
+import IdleBehaviors from './idle-behaviors.js';
+import { startWebServer } from './web/server.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const AUDIO_DEVICE = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
+
+import { hasAngryKeyword, angryReaction, moodFace, wakeWordDetected, thinking, speaking } from './face-reactions.js';
+
+let voiceActive = false;
+let wakeListener = null;
+let idle = null;
+const conversationLog = [];
+
+const MAX_CONVERSATION_TURNS = 5;
+
+async function doSingleTurn(text) {
+  logger.info({ text }, 'User said');
+
+  // Pipeline: TTS + play each sentence as it streams from the LLM
+  let fullText = '';
+  let result = null;
+  const sentenceQueue = [];
+  let streamDone = false;
+  let resolveNext = null;
+
+  const onSentence = (sentence) => {
+    logger.info({ sentence: sentence.substring(0, 50) }, 'Sentence ready');
+    fullText += sentence + ' ';
+    sentenceQueue.push(sentence);
+    if (resolveNext) { resolveNext(); resolveNext = null; }
+  };
+
+  setFace('focused');
+  const streamPromise = respondStreaming(text, onSentence).then(r => {
+    result = r;
+    streamDone = true;
+    if (resolveNext) { resolveNext(); resolveNext = null; }
+  });
+
+  // Play sentences as they arrive — TTS starts on first sentence
+  // while the LLM is still generating the rest
+  let idx = 0;
+  let started = false;
+  while (true) {
+    if (idx >= sentenceQueue.length && !streamDone) {
+      await new Promise(r => { resolveNext = r; });
+    }
+    if (idx >= sentenceQueue.length && streamDone) break;
+    if (idx < sentenceQueue.length) {
+      if (!started) { setFace('talking'); started = true; }
+      try {
+        const file = await synthesize(sentenceQueue[idx]);
+        if (file) await playFile(file, AUDIO_DEVICE);
+      } catch (e) {
+        logger.warn({ err: e.message }, 'Sentence TTS failed');
+      }
+      idx++;
+    }
+  }
+
+  await streamPromise;
+
+  if (!result) {
+    setFace('confused');
+    await speakText('hmm, I cannot think right now', AUDIO_DEVICE);
+    return null;
+  }
+
+  // Log conversation (persistent)
+  const { addConversation } = await import('./web/data.js');
+  addConversation(text, fullText.trim());
+
+  // Brief mood reaction — kept short so follow-up listening starts quickly
+  if (hasAngryKeyword(fullText)) {
+    const angryAnim = angryReaction();
+    logger.info({ anim: angryAnim }, 'Angry trigger!');
+    playOnce(angryAnim); // non-blocking — follow-up loop will cut it
+  } else {
+    const face = moodFace(result.mood || 'happy');
+    setFace(face);
+  }
+
+  return result;
+}
+
+async function handleVoiceTurn() {
+  if (voiceActive) return;
+
+  voiceActive = true;
+  if (idle) {
+    idle.noteInteraction();
+    idle.enabled = false;
+  }
+
+  try {
+    if (wakeListener) wakeListener.stop();
+
+    // Prevent BT audio restart during voice turn
+    try {
+      execSync('touch /tmp/ninja-voice-active');
+    } catch {}
+
+    // First turn — triggered by wake word
+    setFace('surprised');
+    await new Promise(r => setTimeout(r, 500));
+
+    let audio = await recordAudio(5);
+    if (!audio) { setFace('idle'); return; }
+    setFace('focused');
+    playStockPhrase(AUDIO_DEVICE);
+
+    let text = await transcribe(audio);
+    if (!text || text.length < 2) {
+      logger.info('No speech detected');
+      setFace('idle');
+      return;
+    }
+
+    let result = await doSingleTurn(text);
+    if (!result) return;
+
+    // Conversation loop — listen for follow-ups without wake word
+    for (let turn = 1; turn < MAX_CONVERSATION_TURNS; turn++) {
+      // Cut any animation and show listening face immediately
+      setFace('surprised', { force: true });
+      logger.info({ turn }, 'Listening for follow-up...');
+      await new Promise(r => setTimeout(r, 100));
+
+      audio = await recordAudio(5);
+      if (!audio) {
+        logger.info('Silent recording, ending conversation');
+        break;
+      }
+      setFace('focused');
+
+      text = await transcribe(audio);
+      if (!text || text.length < 2) {
+        logger.info('No follow-up detected, ending conversation');
+        break;
+      }
+
+      result = await doSingleTurn(text);
+      if (!result) break;
+    }
+
+    setFace('idle');
+
+  } catch (e) {
+    logger.error({ err: e.message }, 'Voice turn failed');
+    setFace('confused');
+  } finally {
+    voiceActive = false;
+    if (idle) idle.enabled = true;
+    // Allow BT audio to resume
+    try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
+    // Restart wake word listener with delay to avoid TTS echo
+    if (wakeListener) {
+      wakeListener.stop();
+      await new Promise(r => setTimeout(r, 5000));
+      wakeListener.start();
+    }
+  }
+}
+
+async function main() {
+  logger.info('Little Gamers Ninja — starting orchestrator');
+
+  // Init streaming display
+  await displayInit();
+  logger.info('Display connected');
+
+  // Start idle behaviors (now uses setFace directly)
+  idle = new IdleBehaviors({ setFace, playOnce });
+
+  // Pre-generate stock phrases with Google TTS voice
+  await preloadStockPhrases();
+
+  // Start wake word listener
+  wakeListener = new WakeWordListener();
+  wakeListener.on('wake', () => {
+    logger.info('Wake word triggered!');
+    handleVoiceTurn();
+  });
+  wakeListener.start();
+
+  // Set initial face
+  setFace('idle');
+
+  // Start idle behavior loop
+  idle.start();
+
+  // Start web UI
+  startWebServer({
+    get currentFace() { return 'idle'; },
+    get wakeWordActive() { return wakeListener?.running || false; },
+    get voiceActive() { return voiceActive; },
+    conversationLog,
+    framesDir: join(__dirname, '..', 'frames'),
+    setFace,
+    playOnce,
+    startWakeWord: () => wakeListener?.start(),
+    stopWakeWord: () => wakeListener?.stop(),
+  });
+
+  logger.info('Orchestrator running — say "Hey Cookie" to talk');
+
+  // Handle shutdown
+  process.on('SIGINT', async () => {
+    logger.info('Shutting down');
+    idle.stop();
+    setFace('sleeping');
+    await new Promise(r => setTimeout(r, 500));
+    displayClose();
+    process.exit(0);
+  });
+}
+
+main().catch((err) => {
+  logger.error({ err }, 'Orchestrator failed');
+  process.exit(1);
+});
