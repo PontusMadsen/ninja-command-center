@@ -1,0 +1,21 @@
+[Unit]
+Description=Ninja Command Center — multi-screen desk companion
+After=network.target sound.target
+
+[Service]
+Type=simple
+User=pontus
+WorkingDirectory=/home/pontus/ninja-command-center/pi
+ExecStart=/usr/bin/node src/orchestrator.js
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=5
+Environment=PYTHONUNBUFFERED=1
+Environment=NODE_ENV=production
+Environment=SDL_FBDEV=/dev/fb1
+Environment=SDL_VIDEODRIVER=fbcon
+EnvironmentFile=/home/pontus/ninja-command-center/pi/.env
+
+[Install]
+WantedBy=multi-user.target
