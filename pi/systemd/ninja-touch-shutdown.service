@@ -1,0 +1,13 @@
+[Unit]
+Description=Ninja Command Center — triple-tap shutdown listener
+After=ninja-hub.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /home/command-center/ninja-command-center/pi/src/touch-shutdown.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
