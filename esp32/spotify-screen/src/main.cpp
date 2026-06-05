@@ -3,7 +3,20 @@
 #include <HTTPClient.h>
 #include <TFT_eSPI.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include <CST816S.h>
 #include "config.h"
+
+// ---------------------------------------------------------------------------
+// Touch + Buttons (T-Display S3)
+// ---------------------------------------------------------------------------
+#define TOUCH_SDA  18
+#define TOUCH_SCL  17
+#define TOUCH_INT  16
+#define TOUCH_RST  21
+#define TFT_BL_PIN 38
+
+CST816S touch(TOUCH_SDA, TOUCH_SCL, TOUCH_RST, TOUCH_INT);
 
 // ---------------------------------------------------------------------------
 // Colors
@@ -66,7 +79,7 @@ void showBootScreen();
 void pollNowPlaying();
 void drawNowPlaying();
 void drawNoMusic();
-void drawAlbumArtPlaceholder();
+void drawAlbumArt();
 void drawTrackInfo();
 void drawProgressBar();
 void drawControls();
@@ -82,9 +95,21 @@ void setup() {
     Serial.begin(115200);
     delay(100);
 
+    // Init buttons
+    pinMode(0, INPUT_PULLUP);
+    pinMode(14, INPUT_PULLUP);
+
+    // Init touch
+    Wire.begin(TOUCH_SDA, TOUCH_SCL);
+    touch.begin(Wire);
+
+    // Init backlight
+    pinMode(TFT_BL_PIN, OUTPUT);
+    digitalWrite(TFT_BL_PIN, HIGH);
+
     // Init display
     tft.init();
-    tft.setRotation(0);
+    tft.setRotation(2);
     tft.fillScreen(COL_BG);
     tft.setTextDatum(MC_DATUM);
 
@@ -214,7 +239,7 @@ void drawNowPlaying() {
     // Only clear if track changed or first draw
     if (firstDraw || current.trackId != previous.trackId) {
         tft.fillScreen(COL_BG);
-        drawAlbumArtPlaceholder();
+        drawAlbumArt();
         drawTrackInfo();
     }
     drawProgressBar();
@@ -232,11 +257,47 @@ void drawNoMusic() {
 }
 
 // ---------------------------------------------------------------------------
-// Draw: album art placeholder (grey rectangle)
+// Draw: album art from Pi proxy (150x150 RGB565) with fallback placeholder
 // ---------------------------------------------------------------------------
-void drawAlbumArtPlaceholder() {
+void drawAlbumArt() {
+    if (WiFi.status() != WL_CONNECTED) goto placeholder;
+
+    {
+        HTTPClient http;
+        String url = String(HUB_HOST) + "/api/spotify/albumart";
+        http.begin(url);
+        http.setTimeout(5000);
+        int code = http.GET();
+
+        if (code == 200) {
+            int len = http.getSize();
+            if (len == ART_SIZE * ART_SIZE * 2) {
+                WiFiClient* stream = http.getStreamPtr();
+                uint16_t lineBuf[ART_SIZE];
+
+                for (int y = 0; y < ART_SIZE; y++) {
+                    int bytesRead = 0;
+                    while (bytesRead < ART_SIZE * 2) {
+                        int n = stream->readBytes(
+                            ((uint8_t*)lineBuf) + bytesRead,
+                            ART_SIZE * 2 - bytesRead
+                        );
+                        if (n <= 0) break;
+                        bytesRead += n;
+                    }
+                    tft.pushImage(ART_X, ART_Y + y, ART_SIZE, 1, lineBuf);
+                }
+
+                http.end();
+                Serial.println("Album art loaded");
+                return;
+            }
+        }
+        http.end();
+    }
+
+placeholder:
     tft.fillRect(ART_X, ART_Y, ART_SIZE, ART_SIZE, COL_CONTROLS);
-    // Music note icon hint
     tft.setTextColor(COL_SECONDARY, COL_CONTROLS);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("~", ART_X + ART_SIZE / 2, ART_Y + ART_SIZE / 2, 4);
@@ -330,25 +391,38 @@ void drawControls() {
 }
 
 // ---------------------------------------------------------------------------
-// Touch handling with 500ms debounce
+// Input handling — touch (swipe/tap) + physical buttons as fallback
+// GPIO 0 = top button, GPIO 14 = bottom button
 // ---------------------------------------------------------------------------
-void handleTouch() {
-    uint16_t tx, ty;
-    if (!tft.getTouch(&tx, &ty)) return;
+#define BTN_TOP    0
+#define BTN_BOTTOM 14
 
+void handleTouch() {
     unsigned long now = millis();
     if (now - lastTouch < 500) return;  // debounce
-    lastTouch = now;
 
-    // Only handle touches in the control zone
-    if (ty < (uint16_t)CTRL_Y || ty > (uint16_t)(CTRL_Y + CTRL_H)) return;
+    // Try touch first
+    if (touch.available()) {
+        lastTouch = now;
+        uint8_t gesture = touch.data.gestureID;
 
-    if (tx < (uint16_t)CTRL_BTN_W) {
-        sendControl("prev");
-    } else if (tx < (uint16_t)(CTRL_BTN_W * 2)) {
-        sendControl(current.playing ? "pause" : "play");
-    } else {
+        if (gesture == 0x03) {
+            sendControl("next");
+        } else if (gesture == 0x04) {
+            sendControl("prev");
+        } else if (gesture == 0x01 || gesture == 0x00) {
+            sendControl(current.playing ? "pause" : "play");
+        }
+        return;
+    }
+
+    // Fallback to physical buttons
+    if (digitalRead(BTN_TOP) == LOW) {
+        lastTouch = now;
         sendControl("next");
+    } else if (digitalRead(BTN_BOTTOM) == LOW) {
+        lastTouch = now;
+        sendControl(current.playing ? "pause" : "play");
     }
 }
 

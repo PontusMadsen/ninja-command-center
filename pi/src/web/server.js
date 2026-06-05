@@ -699,6 +699,48 @@ export async function startWebServer(state) {
     res.json({ connected: spotify.isConnected() });
   });
 
+  // Album art proxy — downloads, resizes to 150x150, serves as raw RGB565
+  let artCache = { url: null, data: null };
+  app.get('/api/spotify/albumart', async (req, res) => {
+    const np = spotify.getNowPlaying();
+    const artUrl = np?.albumArt || np?.albumArtSmall;
+    if (!artUrl) return res.status(404).send('No art');
+
+    try {
+      // Return cached if same URL
+      if (artCache.url === artUrl && artCache.data) {
+        res.set('Content-Type', 'application/octet-stream');
+        return res.send(artCache.data);
+      }
+
+      const { execSync } = await import('child_process');
+      // Use Python to download, resize, convert to RGB565
+      const script = `
+import sys, struct, urllib.request
+from PIL import Image
+from io import BytesIO
+url = sys.argv[1]
+data = urllib.request.urlopen(url).read()
+img = Image.open(BytesIO(data)).resize((150, 150)).convert('RGB')
+import numpy as np
+arr = np.array(img, dtype=np.uint16)
+rgb565 = ((arr[:,:,0] >> 3) << 11) | ((arr[:,:,1] >> 2) << 5) | (arr[:,:,2] >> 3)
+sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
+`;
+      const result = execSync(`python3 -c '${script.replace(/'/g, "'\\''")}' '${artUrl}'`, {
+        maxBuffer: 150 * 150 * 2 + 1024,
+        timeout: 5000,
+      });
+
+      artCache = { url: artUrl, data: result };
+      res.set('Content-Type', 'application/octet-stream');
+      res.send(result);
+    } catch (e) {
+      logger.warn({ err: e.message }, 'Album art proxy failed');
+      res.status(500).send('Failed');
+    }
+  });
+
   // --- Calendar ---
   app.get('/api/calendar/events', (req, res) => {
     res.json({ events: calendar.getEvents() });
