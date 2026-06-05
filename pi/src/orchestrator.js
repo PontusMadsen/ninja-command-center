@@ -5,15 +5,23 @@ import { execSync } from 'child_process';
 import logger from './logger.js';
 import { readFileSync } from 'fs';
 
-// Display — PiTFT by default, OLED or ESP32 via env
+// Display — PiTFT by default, or 'none' for headless testing
 const DISPLAY_MODE = process.env.DISPLAY_MODE || 'pitft';
 let displayMod;
-if (DISPLAY_MODE === 'pitft') {
+if (DISPLAY_MODE === 'none') {
+  displayMod = {
+    init: async () => {},
+    setFace: () => {},
+    playOnce: async () => {},
+    buzz: () => {},
+    close: () => {},
+  };
+} else if (DISPLAY_MODE === 'pitft') {
   displayMod = await import('./display-pitft.js');
 } else if (DISPLAY_MODE === 'oled') {
   displayMod = await import('./oled-display.js');
 } else {
-  displayMod = await import('./display.js');
+  displayMod = await import('./display-pitft.js');
 }
 const { init: displayInit, setFace, playOnce, close: displayClose } = displayMod;
 const buzz = displayMod.buzz || (() => {});

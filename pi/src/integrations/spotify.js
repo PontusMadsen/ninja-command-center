@@ -117,10 +117,16 @@ async function fetchNowPlaying() {
     }
   } catch (err) {
     if (err.statusCode === 401) {
-      await refreshAccessToken();
-      return fetchNowPlaying();
+      try {
+        await refreshAccessToken();
+        return fetchNowPlaying();
+      } catch {
+        // refresh failed — stop polling
+        stopPolling();
+        return;
+      }
     }
-    logger.error({ err }, 'Error fetching now playing');
+    logger.warn({ err: err.message }, 'Error fetching now playing');
   }
 }
 
@@ -177,6 +183,10 @@ export function isConnected() {
 
 export function startPolling(intervalMs = 3000) {
   if (pollingTimer) return;
+  if (!connected) {
+    logger.info('Spotify not connected, skipping polling');
+    return;
+  }
   logger.info({ intervalMs }, 'Starting Spotify now-playing polling');
   fetchNowPlaying();
   pollingTimer = setInterval(fetchNowPlaying, intervalMs);
