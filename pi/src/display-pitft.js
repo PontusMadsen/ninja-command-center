@@ -33,6 +33,10 @@ let loopTimer = null;    // current animation loop interval
 let loopFrames = [];     // frames for current loop
 let loopIdx = 0;         // current frame index in loop
 let sending = false;     // true while waiting for ack
+let playingOnce = false; // true during playOnce — blocks setFace
+let pendingFace = null;  // face queued during playOnce
+
+const FRAME_DELAY_MS = 60;  // match original GIF timing (~16fps)
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -71,8 +75,6 @@ function stopLoop() {
   loopIdx = 0;
 }
 
-const FRAME_DELAY_MS = 60;  // match original GIF timing (~16fps)
-
 async function tickLoop() {
   if (loopFrames.length === 0) return;
   if (sending) return;
@@ -85,7 +87,6 @@ async function tickLoop() {
   } catch (e) {
     logger.warn({ err: e.message }, 'Frame send failed');
   }
-  // Subtract render time from delay so timing stays consistent
   const elapsed = Date.now() - t0;
   const wait = Math.max(FRAME_DELAY_MS - elapsed, 10);
   sending = false;
@@ -93,6 +94,18 @@ async function tickLoop() {
   if (loopFrames.length > 0) {
     loopTimer = setTimeout(tickLoop, wait);
   }
+}
+
+function startLoop(animName) {
+  stopLoop();
+  const frames = loadFrames(animName);
+  if (frames.length === 0) {
+    logger.warn({ animName }, 'No frames found');
+    return;
+  }
+  loopFrames = frames;
+  loopIdx = 0;
+  tickLoop();
 }
 
 // ── public API ───────────────────────────────────────────────────────
@@ -122,23 +135,24 @@ export function setFace(state, opts) {
   const force = opts?.force || false;
   const animName = FACE_MAP[state] || state;
 
-  // If forced or different animation, restart loop
-  if (force || animName !== currentAnim()) {
-    stopLoop();
-    const frames = loadFrames(animName);
-    if (frames.length === 0) {
-      logger.warn({ animName }, 'No frames found');
-      return;
-    }
-    loopFrames = frames;
-    loopIdx = 0;
-    tickLoop();
+  // During playOnce, queue the face change for after it finishes
+  if (playingOnce && !force) {
+    pendingFace = animName;
+    return;
+  }
+
+  // If forced, cancel playOnce
+  if (playingOnce && force) {
+    playingOnce = false;
+  }
+
+  if (animName !== currentAnim() || force) {
+    startLoop(animName);
   }
 }
 
 function currentAnim() {
   if (loopFrames.length === 0) return '';
-  // Derive anim name from the first frame's parent directory
   const parts = loopFrames[0].split('/');
   return parts[parts.length - 2] || '';
 }
@@ -149,14 +163,28 @@ export function playOnce(animName) {
     const frames = loadFrames(animName);
     if (frames.length === 0) { resolve(); return; }
 
+    playingOnce = true;
+    pendingFace = null;
+
     for (const frame of frames) {
       if (!py || py.killed) break;
+      if (!playingOnce) break;  // force-interrupted
       const t0 = Date.now();
       await sendFrame(frame);
       const elapsed = Date.now() - t0;
       const wait = Math.max(FRAME_DELAY_MS - elapsed, 10);
       await new Promise(r => setTimeout(r, wait));
     }
+
+    playingOnce = false;
+
+    // Start queued face if one was set during playOnce
+    if (pendingFace) {
+      const face = pendingFace;
+      pendingFace = null;
+      startLoop(face);
+    }
+
     resolve();
   });
 }
@@ -166,6 +194,7 @@ export function buzz() {
 }
 
 export function close() {
+  playingOnce = false;
   stopLoop();
   if (py && !py.killed) {
     py.stdin.end();

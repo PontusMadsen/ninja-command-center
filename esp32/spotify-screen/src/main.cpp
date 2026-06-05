@@ -42,9 +42,6 @@ CST816S touch(TOUCH_SDA, TOUCH_SCL, TOUCH_RST, TOUCH_INT);
 #define BAR_X          15
 #define BAR_W          (SCREEN_W - 30)
 #define TIME_Y         236
-#define CTRL_Y         260
-#define CTRL_H         50
-#define CTRL_BTN_W     (SCREEN_W / 3)
 
 // ---------------------------------------------------------------------------
 // NowPlaying data
@@ -82,7 +79,6 @@ void drawNoMusic();
 void drawAlbumArt();
 void drawTrackInfo();
 void drawProgressBar();
-void drawControls();
 void handleTouch();
 void sendControl(const char* action);
 String truncate(const String& str, int maxLen);
@@ -243,7 +239,6 @@ void drawNowPlaying() {
         drawTrackInfo();
     }
     drawProgressBar();
-    drawControls();
 }
 
 // ---------------------------------------------------------------------------
@@ -340,54 +335,6 @@ void drawProgressBar() {
     tft.drawString(formatTime(current.progressMs), BAR_X, TIME_Y, 1);
     tft.setTextDatum(TR_DATUM);
     tft.drawString(formatTime(current.durationMs), BAR_X + BAR_W, TIME_Y, 1);
-}
-
-// ---------------------------------------------------------------------------
-// Draw: control buttons (prev | play/pause | next)
-// ---------------------------------------------------------------------------
-void drawControls() {
-    int btnY = CTRL_Y;
-    int btnH = CTRL_H;
-
-    // Background for control area
-    tft.fillRect(0, btnY, SCREEN_W, btnH, COL_BG);
-
-    int triSize = 10;
-    int centerY = btnY + btnH / 2;
-
-    // Prev triangle (pointing left) — left third
-    int prevCx = CTRL_BTN_W / 2;
-    tft.fillTriangle(
-        prevCx + triSize, centerY - triSize,
-        prevCx - triSize, centerY,
-        prevCx + triSize, centerY + triSize,
-        COL_SECONDARY
-    );
-
-    // Play / Pause — center third
-    int playCx = SCREEN_W / 2;
-    if (current.playing) {
-        // Pause icon: two vertical bars
-        tft.fillRect(playCx - 8, centerY - triSize, 5, triSize * 2, COL_PRIMARY);
-        tft.fillRect(playCx + 3, centerY - triSize, 5, triSize * 2, COL_PRIMARY);
-    } else {
-        // Play triangle (pointing right)
-        tft.fillTriangle(
-            playCx - triSize, centerY - triSize,
-            playCx + triSize, centerY,
-            playCx - triSize, centerY + triSize,
-            COL_PRIMARY
-        );
-    }
-
-    // Next triangle (pointing right) — right third
-    int nextCx = SCREEN_W - CTRL_BTN_W / 2;
-    tft.fillTriangle(
-        nextCx - triSize, centerY - triSize,
-        nextCx + triSize, centerY,
-        nextCx - triSize, centerY + triSize,
-        COL_SECONDARY
-    );
 }
 
 // ---------------------------------------------------------------------------

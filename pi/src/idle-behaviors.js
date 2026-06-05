@@ -94,6 +94,7 @@ export default class IdleBehaviors {
       const anim = FUN_ANIMS[Math.floor(Math.random() * FUN_ANIMS.length)];
       logger.debug({ behavior: anim }, 'Fun animation');
       await this.playOnce(anim);
+      this.setFace('idle');
     } else {
       const b = QUICK_FACES[Math.floor(Math.random() * QUICK_FACES.length)];
       logger.debug({ behavior: b.state }, 'Idle behavior');
