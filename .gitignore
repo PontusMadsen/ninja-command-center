@@ -1,7 +1,8 @@
 node_modules/
 .env
 data/
-frames
+frames/
+frames-pitft/
 *.onnx
 google-tts-key.json
 google-calendar-key.json

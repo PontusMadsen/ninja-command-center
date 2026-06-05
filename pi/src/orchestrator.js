@@ -223,7 +223,7 @@ async function main() {
     get wakeWordActive() { return wakeListener?.running || false; },
     get voiceActive() { return voiceActive; },
     conversationLog,
-    framesDir: join(__dirname, '..', 'frames'),
+    framesDir: join(__dirname, '..', 'frames-pitft'),
     setFace,
     playOnce,
     startWakeWord: () => wakeListener?.start(),

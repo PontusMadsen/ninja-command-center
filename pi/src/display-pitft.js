@@ -14,12 +14,16 @@ import { fileURLToPath } from 'url';
 import logger from './logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FRAMES_DIR = join(__dirname, '..', 'frames');
+const FRAMES_DIR = join(__dirname, '..', 'frames-pitft');
 
 const FACE_MAP = {
-  idle: 'default', happy: 'smile', sad: 'cry', angry: 'angry',
+  idle: 'this_is_default', happy: 'smile', sad: 'cry', angry: 'angry',
   surprised: 'WHAT', sleeping: 'sleeping', confused: 'dizzy',
   focused: 'squint', scared: 'scared', talking: 'talking',
+  // Extended faces
+  love: 'love', wow: 'wow', yell: 'yell', devil: 'devil_1',
+  please: 'please', blink: 'blink', sleepy: 'sleepy_1',
+  hehe: 'hehe', fumin: 'fumin', tounge: 'tounge',
 };
 
 let py = null;           // Python subprocess
