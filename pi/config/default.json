@@ -1,0 +1,13 @@
+{
+  "stt": { "provider": "groq", "groq": { "model": "whisper-large-v3-turbo" } },
+  "llm": { "provider": "claude", "claude": { "model": "claude-haiku-4-5-20251001" }, "maxCallsPerHour": 200 },
+  "tts": { "provider": "voicevox", "voicevox": { "host": "http://localhost:50021", "speakerId": 3 } },
+  "wakeword": { "model": "hey_ninja", "sensitivity": 0.5 },
+  "personality": { "promptPath": "src/personality/ninja-base.md" },
+  "audio": { "sampleRate": 16000, "channels": 1, "silenceThresholdMs": 1500 },
+  "reactions": { "defaultProbability": 0.7, "defaultCooldownMs": 3000 },
+  "spotify": { "pollIntervalMs": 3000 },
+  "calendar": { "pollIntervalMs": 60000 },
+  "mail": { "pollIntervalMs": 30000 },
+  "weather": { "pollIntervalMs": 600000 }
+}

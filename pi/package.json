@@ -1,0 +1,19 @@
+{
+  "name": "ninja-command-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/orchestrator.js",
+    "dev": "node --watch src/orchestrator.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^13.0.0",
+    "@anthropic-ai/sdk": "^0.52.0",
+    "spotify-web-api-node": "^5.0.2",
+    "googleapis": "^148.0.0",
+    "imapflow": "^1.0.0"
+  }
+}

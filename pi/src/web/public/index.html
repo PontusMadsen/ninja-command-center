@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#161616">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Ninja — focus, tasks & habits</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#e8e8e6;--surface:#ffffff;--surface-2:#fafafa;--surface-3:#f1f1ef;
+  --ink:#161616;--ink-2:#5e5e5c;--ink-3:#9b9b98;
+  --line:#e7e7e4;--line-2:#d6d6d2;--accent:#161616;
+  --r:8px;--r-sm:6px;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Archivo',sans-serif;
+  background-color:var(--bg);
+  background-image:radial-gradient(circle,rgba(0,0,0,0.055) 0.6px,transparent 0.6px);
+  background-size:22px 22px;
+  color:var(--ink);display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;font-size:13px;
+}
+::selection{background:var(--ink);color:#fff}
+
+.app{
+  width:min(1040px,96vw);height:min(684px,94vh);
+  background:var(--surface);border:1px solid var(--line-2);border-radius:13px;
+  box-shadow:0 28px 60px -26px rgba(0,0,0,.4),0 4px 14px -6px rgba(0,0,0,.18);
+  display:flex;overflow:hidden;position:relative;
+}
+
+/* rail */
+.rail{width:64px;flex:none;border-right:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;align-items:center;padding:12px 0}
+.logo{width:30px;height:30px;border-radius:7px;background:var(--ink);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.logo span{width:9px;height:9px;background:#fff;border-radius:2px}
+.nav{display:flex;flex-direction:column;gap:3px;width:100%;align-items:center}
+.nav-btn{width:48px;height:46px;border:none;background:none;cursor:pointer;border-radius:var(--r);color:var(--ink-3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:.14s}
+.nav-btn svg{width:19px;height:19px}
+.nav-btn .lbl{font:600 7.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.nav-btn:hover{background:var(--surface-3);color:var(--ink-2)}
+.nav-btn.active{background:var(--ink);color:#fff}
+.rail .spacer{flex:1}
+
+/* main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.topbar{height:54px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.topbar h1{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topbar .sub{font:500 10px/1 var(--mono);color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;margin-top:3px}
+.clock .t{font:500 13px/1 var(--mono);color:var(--ink)}
+.clock .d{font:400 9.5px/1 var(--mono);color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
+
+.view{flex:1;overflow-y:auto;padding:22px 24px 90px}
+.view::-webkit-scrollbar{width:8px}
+.view::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:4px}
+.pane{display:none}
+.pane.active{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.mlabel{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.row-head{display:flex;align-items:center;justify-content:space-between;margin:2px 0 11px}
+.row-head .act{font:600 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);cursor:pointer;background:none;border:none}
+.row-head .act:hover{color:var(--ink)}
+
+/* tasks */
+.progress{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress i{display:block;height:100%;background:var(--ink);border-radius:3px;transition:width .35s}
+.addbar{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:var(--r);padding:0 8px 0 10px;height:40px;background:var(--surface);margin-bottom:14px}
+.addbar:focus-within{border-color:var(--ink)}
+.pdot{width:13px;height:13px;border-radius:50%;flex:none;cursor:pointer;border:2px solid var(--ink-3);transition:.14s}
+.pdot[data-p="2"]{background:var(--ink-3);border-color:var(--ink-3)}
+.pdot[data-p="3"]{background:var(--ink);border-color:var(--ink)}
+.addbar input{flex:1;border:none;outline:none;font:400 13px 'Archivo';background:none;height:100%}
+.addbar .hint{font:500 9px/1 var(--mono);color:var(--ink-3);letter-spacing:.06em}
+.tlist{display:flex;flex-direction:column}
+.task{display:flex;align-items:center;gap:11px;height:42px;border-bottom:1px solid var(--line);padding:0 2px}
+.task:last-child{border-bottom:none}
+.check{width:17px;height:17px;border:1.7px solid var(--line-2);border-radius:5px;flex:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.14s}
+.check:hover{border-color:var(--ink)}
+.check svg{width:11px;height:11px;opacity:0;color:#fff}
+.task.done .check{background:var(--ink);border-color:var(--ink)}
+.task.done .check svg{opacity:1}
+.t-title{flex:1;border:none;background:none;outline:none;font:500 13px 'Archivo';color:var(--ink);padding:4px;border-radius:4px;min-width:0}
+.t-title:focus{background:var(--surface-3)}
+.task.done .t-title{color:var(--ink-3);text-decoration:line-through}
+.drag-handle{cursor:grab;color:var(--line-2);font-size:11px;padding:0 4px;user-select:none}
+.drag-handle:hover{color:var(--ink-3)}
+.sortable-ghost{opacity:0.3}
+.sortable-chosen{background:var(--surface-3)}
+.task.active-task{background:var(--surface-3)}
+.task.active-task .act-focus{opacity:1;color:var(--ink)}
+.t-pdot{width:9px;height:9px;border-radius:50%;cursor:pointer;flex:none}
+.t-pdot[data-p="1"]{background:var(--line-2)}
+.t-pdot[data-p="2"]{background:var(--ink-3)}
+.t-pdot[data-p="3"]{background:var(--ink)}
+.iconbtn{width:26px;height:26px;border:none;background:none;border-radius:var(--r-sm);cursor:pointer;color:var(--ink-3);display:flex;align-items:center;justify-content:center;opacity:0;transition:.12s}
+.task:hover .iconbtn{opacity:1}
+.iconbtn:hover{background:var(--surface-3);color:var(--ink)}
+.iconbtn svg{width:14px;height:14px}
+.empty{text-align:center;padding:48px 0;color:var(--ink-3);font-size:12px}
+.empty .big{font-size:26px;margin-bottom:8px}
+
+/* focus */
+.focus-wrap{display:flex;flex-direction:column;align-items:center;padding-top:8px}
+.mode-row{display:flex;gap:4px;margin-bottom:18px;background:var(--surface-3);padding:3px;border-radius:var(--r)}
+.mode-row button{border:none;background:none;font:600 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:7px 13px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink-3)}
+.mode-row button.on{background:var(--ink);color:#fff}
+.ring-wrap{position:relative;width:212px;height:212px;margin-bottom:6px}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface-3);stroke-width:7}
+.ring-fg{fill:none;stroke:var(--ink);stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-c .time{font:500 46px/1 var(--mono);letter-spacing:-.02em}
+.ring-c .ph{font:600 9.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.dots{display:flex;gap:6px;margin:14px 0 4px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.dots i.on{background:var(--ink)}
+.f-task{font:500 11px var(--mono);color:var(--ink-2);margin-bottom:18px;letter-spacing:.02em}
+.f-task.none{color:var(--ink-3)}
+.ctrls{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.btn{border:1px solid var(--line-2);background:var(--surface);cursor:pointer;border-radius:var(--r);font:600 11px 'Archivo';color:var(--ink);display:flex;align-items:center;justify-content:center;transition:.14s}
+.btn:hover{border-color:var(--ink)}
+.btn.round{width:40px;height:40px;border-radius:50%}
+.btn.round svg{width:15px;height:15px}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);width:118px;height:46px;font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.btn.primary:hover{background:#000}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{border:1px solid var(--line-2);background:var(--surface);border-radius:20px;padding:6px 12px;font:500 9.5px/1 var(--mono);letter-spacing:.04em;cursor:pointer;color:var(--ink-2)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* habits */
+.hlist{display:flex;flex-direction:column;gap:8px}
+.habit{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;background:var(--surface)}
+.habit .hname{flex:1;border:none;background:none;outline:none;font:600 13px 'Archivo';padding:3px;border-radius:4px;min-width:60px}
+.habit .hname:focus{background:var(--surface-3)}
+.week{display:flex;gap:4px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px}
+.day .dl{font:500 7.5px/1 var(--mono);color:var(--ink-3)}
+.day .dd{width:13px;height:13px;border-radius:4px;background:var(--surface-3);border:1px solid var(--line)}
+.day .dd.on{background:var(--ink);border-color:var(--ink)}
+.day .dd.today{box-shadow:0 0 0 2px var(--surface),0 0 0 3.5px var(--line-2)}
+.streak{display:flex;align-items:center;gap:4px;min-width:44px;justify-content:flex-end}
+.streak svg{width:13px;height:13px;color:var(--ink)}
+.streak .n{font:600 14px var(--mono)}
+.streak.zero{color:var(--ink-3)}
+.streak.zero svg{color:var(--ink-3)}
+.htoggle{width:34px;height:34px;border-radius:50%;border:1.7px solid var(--line-2);background:var(--surface);cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center;color:var(--ink-3);transition:.14s}
+.htoggle:hover{border-color:var(--ink)}
+.htoggle svg{width:15px;height:15px}
+.habit.done-today .htoggle{background:var(--ink);border-color:var(--ink);color:#fff}
+.habit .hdel{opacity:0;border:none;background:none;cursor:pointer;color:var(--ink-3);font-size:14px;padding:4px}
+.habit:hover .hdel{opacity:1}
+.habit .hdel:hover{color:var(--ink)}
+
+/* insights */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:20px}
+.stat{border:1px solid var(--line);border-radius:var(--r);padding:12px 13px;background:var(--surface)}
+.stat .v{font:600 22px/1 var(--mono);letter-spacing:-.02em}
+.stat .v small{font-size:11px;color:var(--ink-3);font-weight:500}
+.stat .k{font:600 8.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);margin-top:7px}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;background:var(--surface);margin-bottom:14px}
+.card h3{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:15px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:104px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar-col .bv{font:500 8.5px/1 var(--mono);color:var(--ink-3)}
+.bar{width:100%;max-width:30px;background:var(--surface-3);border-radius:4px 4px 0 0;transition:height .4s}
+.bar.today{background:var(--ink)}
+.bar:not(.today){background:var(--line-2)}
+.bar-col .bl{font:500 8.5px/1 var(--mono);color:var(--ink-3);text-transform:uppercase}
+.bar-col.is-today .bl{color:var(--ink);font-weight:600}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  body{padding:0;align-items:stretch}
+  .app{width:100%;height:100vh;border-radius:0;border:none;box-shadow:none;flex-direction:column}
+  .rail{width:100%;height:48px;flex-direction:row;border-right:none;border-bottom:1px solid var(--line);padding:0 8px;overflow-x:auto}
+  .logo{margin-bottom:0;margin-right:8px;width:26px;height:26px}
+  .logo img{width:26px!important;height:26px!important}
+  .nav{flex-direction:row;gap:2px;width:auto}
+  .nav-btn{width:42px;height:38px}
+  .nav-btn .lbl{font-size:6.5px}
+  .nav-btn svg{width:16px;height:16px}
+  .rail .spacer{display:none}
+  .topbar{height:44px;padding:0 14px}
+  .topbar h1{font-size:14px}
+  .view{padding:14px 14px 80px}
+  .task{gap:6px}
+  .habit{padding:8px 10px;gap:8px;flex-wrap:wrap}
+  .week{gap:3px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .focus-wrap{padding-top:0}
+  .ring-wrap{width:180px;height:180px}
+  .ring-c .time{font-size:36px}
+  .card{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="rail">
+    <div class="logo" style="background:none"><img src="/icon-30.png" style="width:30px;height:30px;border-radius:7px"></div>
+    <div class="nav" id="nav"></div>
+    <div class="spacer"></div>
+    <button class="nav-btn" data-view="settings" title="Settings">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <line x1="4" y1="6" x2="16" y2="6"/><circle cx="13" cy="6" r="2" fill="var(--surface-2)"/>
+        <line x1="4" y1="14" x2="16" y2="14"/><circle cx="7" cy="14" r="2" fill="var(--surface-2)"/>
+      </svg>
+      <span class="lbl">Set</span>
+    </button>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div><h1 id="vTitle">Today</h1><div class="sub" id="vSub">Plan your day</div></div>
+      <div class="clock"><div class="t" id="clk">00:00</div><div class="d" id="clkd"></div></div>
+    </div>
+    <div class="view">
+      <!-- TODAY -->
+      <div class="pane active" data-pane="today">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <button class="btn" id="prevDay" style="width:32px;height:32px;border-radius:50%;padding:0">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4l-6 6 6 6"/></svg>
+          </button>
+          <div style="text-align:center">
+            <div style="font:600 14px 'Archivo'" id="dayLabel">Today</div>
+            <div style="font:400 10px var(--mono);color:var(--ink-3);margin-top:2px" id="dayDate"></div>
+          </div>
+          <button class="btn" id="nextDay" style="width:32px;height:32px;border-radius:50%;padding:0">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 4l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="progress"><i id="tProg"></i></div>
+        <div class="addbar">
+          <div class="pdot" id="newP" data-p="2" title="Priority"></div>
+          <input id="newTask" placeholder="Add a task — press Enter">
+          <select id="newRepeat" style="border:1px solid var(--line-2);border-radius:var(--r-sm);padding:3px;font:400 10px var(--mono);background:var(--surface);color:var(--ink-3)">
+            <option value="">once</option>
+            <option value="daily">daily</option>
+            <option value="weekdays">weekdays</option>
+            <option value="weekly">weekly</option>
+          </select>
+          <span class="hint">↵</span>
+        </div>
+        <div class="row-head">
+          <span class="mlabel" id="tCount">Tasks</span>
+          <button class="act" id="clearDone">Clear done</button>
+        </div>
+        <div class="tlist" id="tList"></div>
+        <div id="patreonCard" style="display:none;margin-top:16px;padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--surface-2);align-items:center;justify-content:space-between">
+          <div>
+            <div style="font:600 11px var(--mono);color:var(--ink-3);margin-bottom:4px">LATEST ON PATREON</div>
+            <div id="patreonTitle" style="font:600 13px 'Archivo';margin-bottom:2px"></div>
+            <div id="patreonDate" style="font:400 9px var(--mono);color:var(--ink-3);margin-top:4px"></div>
+          </div>
+          <a href="https://www.patreon.com/c/littlegamers" target="_blank" class="btn" style="flex:none;width:auto;height:32px;padding:0 12px;font-size:11px;display:flex;align-items:center;text-decoration:none;color:inherit">Go to Patreon</a>
+        </div>
+      </div>
+
+      <!-- FOCUS -->
+      <div class="pane" data-pane="focus">
+        <div class="focus-wrap">
+          <div class="mode-row" id="modeRow">
+            <button data-mode="focus" class="on">Focus</button>
+            <button data-mode="break">Break</button>
+          </div>
+          <div class="ring-wrap">
+            <svg viewBox="0 0 212 212" width="212" height="212">
+              <circle class="ring-bg" cx="106" cy="106" r="96"/>
+              <circle class="ring-fg" id="ring" cx="106" cy="106" r="96"/>
+            </svg>
+            <div class="ring-c">
+              <div class="ph" id="phase">Focus session</div>
+              <div class="time" id="time">25:00</div>
+            </div>
+          </div>
+          <div class="dots" id="cycleDots"></div>
+          <div class="f-task none" id="fTask">No task selected</div>
+          <div class="ctrls">
+            <button class="btn round" id="stopBtn" title="Done!">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10.5l3.2 3.2L15 6.5"/></svg>
+            </button>
+            <button class="btn round" id="resetBtn" title="Reset">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M15 7a6 6 0 1 0 1 4"/><path d="M15 3v4h-4"/></svg>
+            </button>
+            <button class="btn primary" id="toggleBtn">Start</button>
+            <button class="btn round" id="skipBtn" title="Skip">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 5l8 5-8 5V5z"/><rect x="14" y="5" width="2" height="10"/></svg>
+            </button>
+          </div>
+          <div class="chips" id="durChips"></div>
+        </div>
+      </div>
+
+      <!-- HABITS -->
+      <div class="pane" data-pane="habits">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <button class="btn" id="prevHDay" style="width:32px;height:32px;border-radius:50%;padding:0">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4l-6 6 6 6"/></svg>
+          </button>
+          <div style="text-align:center">
+            <div style="font:600 14px 'Archivo'" id="hDayLabel">Today</div>
+            <div style="font:400 10px var(--mono);color:var(--ink-3);margin-top:2px" id="hDayDate"></div>
+          </div>
+          <button class="btn" id="nextHDay" style="width:32px;height:32px;border-radius:50%;padding:0">
+            <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 4l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="addbar">
+          <div class="pdot" data-p="3" style="cursor:default"></div>
+          <input id="newHabit" placeholder="Add a habit — press Enter">
+          <span class="hint">↵</span>
+        </div>
+        <div class="row-head"><span class="mlabel" id="hCount">Habits</span></div>
+        <div class="hlist" id="hList"></div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="pane" data-pane="chat">
+        <div id="chatLog" style="height:400px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:12px;background:var(--surface-3)">
+          <div style="color:var(--ink-3);font:400 12px var(--mono)">Type something to chat with the ninja</div>
+        </div>
+        <div class="addbar">
+          <input id="chatInput" placeholder="Say something to the ninja...">
+          <span class="hint">↵</span>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" id="summaryBtn" style="width:auto;height:36px;padding:0 16px;font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase">Daily Summary</button>
+          <span style="font:400 10px var(--mono);color:var(--ink-3);margin-left:8px" id="summaryStatus"></span>
+        </div>
+      </div>
+
+      <!-- INSIGHTS -->
+      <div class="pane" data-pane="insights">
+        <div class="stats" id="statRow"></div>
+        <div class="card">
+          <h3>Focus minutes — this week</h3>
+          <div class="bars" id="weekBars"></div>
+        </div>
+        <div class="stats" id="statRow2" style="margin-top:14px"></div>
+        <div class="card">
+          <h3>Habit streaks</h3>
+          <div id="habitStreaks"></div>
+        </div>
+        <div class="card">
+          <h3>Recent conversations</h3>
+          <div id="recentConvos" style="font:400 11px var(--mono);color:var(--ink-2);max-height:200px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="pane" data-pane="settings">
+        <div class="card">
+          <h3>Volume</h3>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" id="s-volume" min="0" max="100" step="5" value="60" style="flex:1;accent-color:var(--ink)">
+            <span style="font:500 13px var(--mono)" id="s-vol-val">60%</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Face Control</h3>
+          <div id="s-face-grid" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <label style="font:500 11px var(--mono);color:var(--ink-2)"><input type="checkbox" id="s-play-once"> Play full animation</label>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Personality Prompt</h3>
+          <textarea id="s-personality" style="width:100%;height:120px;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px;font:400 12px var(--mono);background:var(--surface-3);resize:vertical"></textarea>
+          <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+            <button class="btn" id="s-pers-save" style="width:auto;height:32px;padding:0 16px">Save</button>
+            <button class="btn" id="s-pers-reset" style="width:auto;height:32px;padding:0 16px;border-color:var(--ink-3);color:var(--ink-3)">Reset to Default</button>
+            <button class="btn" id="s-pers-restart" style="width:auto;height:32px;padding:0 16px;display:none">Restart Now</button>
+            <span style="font:500 10px var(--mono);color:var(--ink-3)" id="s-pers-status"></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>TTS Voice</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="text" id="s-tts-voice" style="flex:1;min-width:200px;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:6px 8px;font:400 12px var(--mono);background:var(--surface-3)">
+            <input type="number" id="s-tts-rate" step="0.05" min="0.5" max="2.0" style="width:70px;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:6px 8px;font:400 12px var(--mono);background:var(--surface-3)">
+            <button class="btn" id="s-tts-save" style="width:auto;height:32px;padding:0 16px">Save</button>
+          </div>
+          <span style="font:500 10px var(--mono);color:var(--ink-3)" id="s-tts-status"></span>
+        </div>
+        <div class="card">
+          <h3>API Keys</h3>
+          <div id="s-keys-list" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <select id="s-key-name" style="border:1px solid var(--line-2);border-radius:var(--r-sm);padding:5px;font:400 11px var(--mono);background:var(--surface-3)">
+              <option value="GROQ_API_KEY">GROQ_API_KEY</option>
+              <option value="ANTHROPIC_API_KEY">ANTHROPIC_API_KEY</option>
+              <option value="GOOGLE_TTS">GOOGLE_TTS (JSON)</option>
+            </select>
+            <input type="password" id="s-key-value" placeholder="new value" style="flex:1;min-width:150px;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:6px 8px;font:400 12px var(--mono);background:var(--surface-3)">
+            <button class="btn" id="s-key-save" style="width:auto;height:32px;padding:0 16px">Set</button>
+          </div>
+          <div id="s-google-paste" style="margin-top:8px;display:none">
+            <textarea id="s-google-key" style="width:100%;height:60px;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px;font:400 10px var(--mono);background:var(--surface-3);resize:vertical" placeholder="Paste service account JSON here..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Updates</h3>
+          <div style="font:400 11px var(--mono);color:var(--ink-2);margin-bottom:8px">
+            Running: <strong id="s-version">...</strong>
+          </div>
+          <div id="s-update-info" style="font:400 11px var(--mono);color:var(--ink-3);margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn" id="s-check-btn" style="width:auto;height:32px;padding:0 12px">Check for Updates</button>
+            <button class="btn" id="s-update-btn" onclick="updateNinja()" style="width:auto;height:32px;padding:0 12px;display:none">Install Update</button>
+          </div>
+          <div style="font:500 10px var(--mono);color:var(--ink-3);margin-top:6px" id="s-update-status"></div>
+        </div>
+        <div class="card">
+          <h3>Diagnostics</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn" id="s-test-speaker" style="width:auto;height:32px;padding:0 12px">Test Speaker</button>
+            <button class="btn" id="s-test-mic" style="width:auto;height:32px;padding:0 12px">Test Mic</button>
+            <button class="btn" id="s-test-display" style="width:auto;height:32px;padding:0 12px">Test Display</button>
+            <button class="btn" id="s-restart" style="width:auto;height:32px;padding:0 12px">Restart Service</button>
+          </div>
+          <div style="font:500 10px var(--mono);color:var(--ink-3);margin-top:6px" id="s-test-status"></div>
+        </div>
+        <div class="card">
+          <h3>Conversation Log</h3>
+          <div id="s-conv-log" style="max-height:200px;overflow-y:auto;font:400 11px var(--mono);color:var(--ink-2)">No conversations yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.6/Sortable.min.js"></script>
+<script>
+$(function(){
+
+const CHK='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10.5l3.2 3.2L15 6.5"/></svg>';
+const X='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="6" x2="14" y2="14"/><line x1="14" y1="6" x2="6" y2="14"/></svg>';
+const PLAY='<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h11"/><path d="M11 6l4 4-4 4"/></svg>';
+const FLAME='<svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 18c-3 0-5.3-2.1-5.3-5 0-2.7 1.9-4.1 2.8-6.4.7 1.5.4 2.9 1.4 3.5.8-1.7.2-3.9-.4-5.6 3 1 5.1 4.4 5.1 8 0 3.3-2.4 5.5-3.6 5.5z"/></svg>';
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+// API helpers
+async function api(path){return(await fetch('/api/'+path)).json()}
+async function post(path,body){return(await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json()}
+async function put(path,body){return(await fetch('/api/'+path,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json()}
+async function del(path){return(await fetch('/api/'+path,{method:'DELETE'})).json()}
+
+// Ninja face
+function ninjaFace(face){post('face',{face})}
+
+// === NAV ===
+const NAV=[
+  {id:'today',lbl:'Day',title:'Today',sub:'Plan your day',icon:'<circle cx="10" cy="10" r="3.4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/>'},
+  {id:'focus',lbl:'Focus',title:'Focus',sub:'Pomodoro deep work',icon:'<circle cx="10" cy="11" r="6.6"/><line x1="10" y1="11" x2="10" y2="7"/><line x1="8" y1="2.6" x2="12" y2="2.6"/><line x1="10" y1="2.6" x2="10" y2="4.4"/>'},
+  {id:'habits',lbl:'Habit',title:'Habits',sub:'Build streaks',icon:'<path d="M10 17.5c-3 0-5.2-2.1-5.2-5 0-2.6 1.8-4 2.7-6.3.7 1.4.4 2.8 1.4 3.4.8-1.6.2-3.8-.4-5.4 2.9 1 5 4.3 5 7.9 0 3.2-2.3 5.4-3.5 5.4z"/>'},
+  {id:'insights',lbl:'Stats',title:'Insights',sub:'Where time goes',icon:'<line x1="4" y1="16.5" x2="16" y2="16.5"/><rect x="4.5" y="10" width="3" height="6"/><rect x="9" y="6" width="3" height="10"/><rect x="13.5" y="12" width="3" height="4"/>'},
+  {id:'chat',lbl:'Chat',title:'Chat',sub:'Talk to the ninja',icon:'<path d="M4 5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-3 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>'},
+];
+NAV.forEach(n=>{
+  $('#nav').append(`<button class="nav-btn${n.id==='today'?' active':''}" data-view="${n.id}" title="${n.title}">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${n.icon}</svg>
+    <span class="lbl">${n.lbl}</span></button>`);
+});
+// Settings button is outside NAV array but uses same data-view
+$('.rail').on('click','.nav-btn',function(){switchView($(this).data('view'))});
+function switchView(v){
+  $('.nav-btn').removeClass('active');$('.nav-btn[data-view="'+v+'"]').addClass('active');
+  $('.pane').removeClass('active');$('.pane[data-pane="'+v+'"]').addClass('active');
+  const n=NAV.find(x=>x.id===v);
+  if(n){$('#vTitle').text(n.title);$('#vSub').text(n.sub)}
+  else if(v==='settings'){$('#vTitle').text('Settings');$('#vSub').text('Ninja configuration')}
+  if(v==='insights')renderInsights();if(v==='habits')renderHabits();
+  if(v==='settings')loadSettings();
+}
+
+// === CLOCK ===
+function clock(){
+  const d=new Date();
+  $('#clk').text(String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'));
+  $('#clkd').text(d.toLocaleDateString('en-US',{weekday:'short',day:'numeric',month:'short'}));
+}
+clock();setInterval(clock,15000);
+
+// === TASKS ===
+let tasks=[];
+let viewDate=new Date();
+function dateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function updateDayNav(){
+  const today=dateStr(new Date());
+  const ds=dateStr(viewDate);
+  if(ds===today) $('#dayLabel').text('Today');
+  else if(ds===dateStr(new Date(Date.now()-86400000))) $('#dayLabel').text('Yesterday');
+  else if(ds===dateStr(new Date(Date.now()+86400000))) $('#dayLabel').text('Tomorrow');
+  else $('#dayLabel').text(viewDate.toLocaleDateString('en-US',{weekday:'long'}));
+  $('#dayDate').text(viewDate.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'}));
+}
+$('#prevDay').on('click',()=>{viewDate.setDate(viewDate.getDate()-1);updateDayNav();loadTasks()});
+$('#nextDay').on('click',()=>{viewDate.setDate(viewDate.getDate()+1);updateDayNav();loadTasks()});
+
+async function loadTasks(){
+  const d=await api('tasks?date='+dateStr(viewDate));
+  tasks=d.tasks||[];
+  renderTasks();
+}
+function renderTasks(){
+  const t=tasks.slice();
+  const $l=$('#tList').empty();
+  if(!t.length){$l.html('<div class="empty"><div class="big">○</div>No tasks yet — add one above</div>');return}
+  t.forEach(tk=>{
+    const p=tk.priority||2;
+    const isActive=activeTask&&activeTask.id===tk.id;
+    $l.append(`<div class="task${tk.done?' done':''}${isActive?' active-task':''}" data-id="${tk.id}">
+      <span class="drag-handle">⠿</span>
+      <div class="check">${CHK}</div>
+      <input class="t-title" value="${esc(tk.text)}">
+      <div class="t-pdot" data-p="${p}" title="Priority"></div>
+      <select class="t-repeat" style="border:1px solid var(--line-2);border-radius:3px;padding:1px 2px;font:500 8px var(--mono);color:var(--ink-3);background:var(--surface)">
+        <option value="" ${!tk.repeat?'selected':''}>once</option>
+        <option value="daily" ${tk.repeat==='daily'?'selected':''}>⟳ daily</option>
+        <option value="weekdays" ${tk.repeat==='weekdays'?'selected':''}>⟳ wkdays</option>
+        <option value="weekly" ${tk.repeat==='weekly'?'selected':''}>⟳ weekly</option>
+      </select>
+      <button class="iconbtn act-focus" title="Focus on this">${PLAY}</button>
+      <button class="iconbtn act-del" title="Delete">${X}</button>
+    </div>`);
+  });
+  const done=tasks.filter(x=>x.done).length;
+  $('#tCount').text('Tasks · '+done+'/'+tasks.length);
+  $('#tProg').css('width',tasks.length?(done/tasks.length*100)+'%':'0%');
+  // Init drag-and-drop
+  if($l[0] && !$l[0]._sortable){
+    $l[0]._sortable=new Sortable($l[0],{handle:'.drag-handle',animation:150,ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
+      onEnd:async function(e){
+        const ids=[...e.target.children].map(el=>$(el).data('id'));
+        await post('tasks/reorder',{ids});
+      }
+    });
+  }
+}
+$('#tList').on('click','.check',async function(){
+  const id=$(this).closest('.task').data('id');
+  const tk=tasks.find(x=>x.id===id);
+  await put('tasks/'+id,{done:!tk.done});
+  loadTasks();
+});
+$('#tList').on('change','.t-title',async function(){
+  const id=$(this).closest('.task').data('id');
+  await put('tasks/'+id,{text:$(this).val().trim()});
+});
+$('#tList').on('click','.act-del',async function(){
+  const id=$(this).closest('.task').data('id');
+  await del('tasks/'+id);
+  loadTasks();
+});
+$('#tList').on('change','.t-repeat',async function(){
+  const id=$(this).closest('.task').data('id');
+  await put('tasks/'+id,{repeat:$(this).val()||null});
+});
+$('#tList').on('click','.act-focus',function(){
+  const id=$(this).closest('.task').data('id');
+  activeTask=tasks.find(x=>x.id===id);
+  renderTasks();
+  renderFocus();
+  switchView('focus');
+});
+$('#clearDone').on('click',async function(){
+  const done=tasks.filter(x=>x.done);
+  for(const t of done) await del('tasks/'+t.id);
+  loadTasks();
+});
+$('#newP').on('click',function(){let p=+$(this).data('p');p=p>=3?1:p+1;$(this).attr('data-p',p).data('p',p)});
+$('#newTask').on('keydown',async function(e){
+  if(e.key==='Enter'&&this.value.trim()){
+    const repeat=$('#newRepeat').val()||null;
+    await post('tasks',{text:this.value.trim(),priority:+$('#newP').data('p'),date:dateStr(viewDate),repeat});
+    this.value='';loadTasks();
+  }
+});
+
+// === FOCUS / POMODORO ===
+let activeTask=null;
+const RING_C=2*Math.PI*96;
+$('#ring').css('stroke-dasharray',RING_C);
+const pomo={mode:'focus',running:false,remaining:25*60,dur:{focus:25*60,break:5*60},cycle:0,doneToday:0};
+let timer=null;
+function fmt(s){const m=Math.floor(s/60),x=s%60;return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')}
+function renderFocus(){
+  $('#time').text(fmt(pomo.remaining));
+  $('#phase').text(pomo.mode==='focus'?'Focus session':'Break');
+  $('#ring').css('stroke-dashoffset',RING_C*(1-pomo.remaining/pomo.dur[pomo.mode]));
+  $('#toggleBtn').text(pomo.running?'Pause':'Start');
+  $('#modeRow button').removeClass('on');$('#modeRow button[data-mode="'+pomo.mode+'"]').addClass('on');
+  $('#cycleDots').html([0,1,2,3].map(i=>'<i class="'+(i<pomo.cycle%4?'on':'')+'"></i>').join(''));
+  if(activeTask&&!activeTask.done){
+    $('#fTask').removeClass('none').text('▸ '+activeTask.text);
+  }else{
+    $('#fTask').addClass('none').text('No task selected — pick one from Today');
+  }
+  $('#durChips').html([['focus',25],['focus',50],['break',5],['break',10]].map(([m,min])=>{
+    const on=(pomo.dur[m]===min*60);
+    return `<div class="chip${on?' on':''}" data-m="${m}" data-min="${min}">${m==='focus'?'Focus':'Break'} ${min}m</div>`;
+  }).join(''));
+}
+function tick(){pomo.remaining--;if(pomo.remaining<=0){complete();return}renderFocus()}
+function start(){if(pomo.running)return;pomo.running=true;timer=setInterval(tick,1000);ninjaFace('squint');renderFocus()}
+function pause(){pomo.running=false;clearInterval(timer);ninjaFace('default');renderFocus()}
+async function stop(){
+  pause();
+  // Mark active task as done
+  if(activeTask&&!activeTask.done){
+    await put('tasks/'+activeTask.id,{done:true});
+    activeTask=null;
+    loadTasks();
+  }
+  pomo.remaining=pomo.dur[pomo.mode];pomo.cycle=0;renderFocus();
+}
+function complete(){
+  clearInterval(timer);pomo.running=false;
+  if(pomo.mode==='focus'){
+    pomo.doneToday++;pomo.cycle++;
+    // Log focus session with task link
+    const payload={duration:Math.round(pomo.dur.focus/60)};
+    if(activeTask) payload.taskId=activeTask.id;
+    post('focus',payload);
+    // Celebrate
+    post('face',{face:Math.random()<0.5?'star':'keep_it_up',playOnce:true});
+    pomo.mode='break';
+  }else{
+    ninjaFace('default');
+    pomo.mode='focus';
+  }
+  pomo.remaining=pomo.dur[pomo.mode];renderFocus();
+  setTimeout(()=>ninjaFace('default'),3000);
+}
+$('#toggleBtn').on('click',()=>pomo.running?pause():start());
+$('#stopBtn').on('click',stop);
+$('#resetBtn').on('click',()=>{pause();pomo.remaining=pomo.dur[pomo.mode];renderFocus()});
+$('#skipBtn').on('click',complete);
+$('#durChips').on('click','.chip',function(){
+  const m=$(this).data('m'),min=+$(this).data('min');
+  pomo.dur[m]=min*60;if(pomo.mode===m&&!pomo.running)pomo.remaining=min*60;renderFocus();
+});
+$('#modeRow').on('click','button',function(){pause();pomo.mode=$(this).data('mode');pomo.remaining=pomo.dur[pomo.mode];renderFocus()});
+$(document).on('keydown',function(e){if($(e.target).is('input'))return;if(e.code==='Space'&&$('.pane[data-pane="focus"]').hasClass('active')){e.preventDefault();pomo.running?pause():start()}});
+
+// === HABITS ===
+let habits=[];
+let habitDate=new Date();
+function updateHabitDayNav(){
+  const today=dateStr(new Date()),ds=dateStr(habitDate);
+  if(ds===today) $('#hDayLabel').text('Today');
+  else if(ds===dateStr(new Date(Date.now()-86400000))) $('#hDayLabel').text('Yesterday');
+  else if(ds===dateStr(new Date(Date.now()+86400000))) $('#hDayLabel').text('Tomorrow');
+  else $('#hDayLabel').text(habitDate.toLocaleDateString('en-US',{weekday:'long'}));
+  $('#hDayDate').text(habitDate.toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'}));
+}
+$('#prevHDay').on('click',()=>{habitDate.setDate(habitDate.getDate()-1);updateHabitDayNav();loadHabits()});
+$('#nextHDay').on('click',()=>{habitDate.setDate(habitDate.getDate()+1);updateHabitDayNav();loadHabits()});
+
+async function loadHabits(){const d=await api('habits?date='+dateStr(habitDate));habits=d.habits||[];renderHabits()}
+function renderHabits(){
+  const $l=$('#hList').empty();
+  const labels=['M','T','W','T','F','S','S'];
+  const dayLabels=['M','T','W','T','F','S','S'];
+  habits.forEach(h=>{
+    const s=h.streak||0;
+    let weekDots='';
+    const viewDow=(habitDate.getDay()+6)%7;
+    const monday=new Date(habitDate);monday.setDate(habitDate.getDate()-viewDow);
+    const viewDs=dateStr(habitDate);
+    for(let i=0;i<7;i++){
+      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const ds=dateStr(d);
+      const on=h.checks&&h.checks.includes(ds);
+      const isSelected=ds===viewDs;
+      weekDots+=`<div class="day"><div class="dl">${dayLabels[i]}</div><div class="dd${on?' on':''}${isSelected?' today':''}"></div></div>`;
+    }
+    $l.append(`<div class="habit${h.checkedOnDate?' done-today':''}" data-id="${h.id}">
+      <span class="drag-handle">⠿</span>
+      <input class="hname" value="${esc(h.name)}">
+      <div class="week">${weekDots}</div>
+      <div class="streak${s?'':' zero'}">${FLAME}<span class="n">${s}</span></div>
+      <button class="htoggle" title="Mark day">${CHK}</button>
+      <button class="hdel" title="Delete">×</button>
+    </div>`);
+  });
+  const dn=habits.filter(h=>h.checkedOnDate).length;
+  $('#hCount').text('Habits · '+dn+'/'+habits.length);
+  // Init drag-and-drop
+  if($l[0] && !$l[0]._sortable){
+    $l[0]._sortable=new Sortable($l[0],{handle:'.drag-handle',animation:150,ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
+      onEnd:async function(e){
+        const ids=[...e.target.children].map(el=>$(el).data('id'));
+        await post('habits/reorder',{ids});
+      }
+    });
+  }
+}
+$('#hList').on('click','.htoggle',async function(){
+  const id=$(this).closest('.habit').data('id');
+  const h=habits.find(x=>x.id===id);
+  await post('habits/'+id+'/'+(h.checkedOnDate?'uncheck':'check'),{date:dateStr(habitDate)});
+  loadHabits();
+});
+$('#hList').on('click','.hdel',async function(){
+  const id=$(this).closest('.habit').data('id');
+  await del('habits/'+id);loadHabits();
+});
+$('#hList').on('change','.hname',async function(){
+  const id=$(this).closest('.habit').data('id');
+  await put('habits/'+id,{name:$(this).val().trim()});
+});
+$('#newHabit').on('keydown',async function(e){
+  if(e.key==='Enter'&&this.value.trim()){
+    await post('habits',{name:this.value.trim()});this.value='';loadHabits();
+  }
+});
+
+// === INSIGHTS ===
+async function renderInsights(){
+  const [d, convos] = await Promise.all([
+    api('focus/stats').catch(()=>({focusToday:0,focusWeek:0,focusTotal:0,totalSessions:0,weekDays:[]})),
+    api('conversations').catch(()=>({log:[]}))
+  ]);
+  const tdone=tasks.filter(t=>t.done).length;
+  const hdone=habits.filter(h=>h.checkedOnDate).length;
+  const bestStreak=habits.reduce((m,h)=>Math.max(m,h.streak||0),0);
+
+  // Top row stats
+  const stats=[
+    {v:d.focusToday||0,s:'m',k:'Focus today'},
+    {v:d.focusWeek||0,s:'m',k:'Focus this week'},
+    {v:tdone+'/'+tasks.length,s:'',k:'Tasks done'},
+    {v:Math.round(hdone/Math.max(habits.length,1)*100),s:'%',k:'Habit rate'},
+  ];
+  $('#statRow').html(stats.map(s=>`<div class="stat"><div class="v">${s.v}<small>${s.s}</small></div><div class="k">${s.k}</div></div>`).join(''));
+
+  // Weekly chart
+  const days=d.weekDays||[];
+  const max=Math.max(...days.map(x=>x.m||0),1);
+  const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const today=new Date().getDay();
+  $('#weekBars').html(days.map((x,i)=>{
+    const isT=(i===(today+6)%7);
+    return `<div class="bar-col${isT?' is-today':''}"><div class="bv">${x.m||0}</div><div class="bar${isT?' today':''}" style="height:${Math.max((x.m||0)/max*100,4)}%"></div><div class="bl">${labels[i]}</div></div>`;
+  }).join(''));
+
+  // Second row stats
+  const totalHrs=Math.floor((d.focusTotal||0)/60);
+  const totalMin=(d.focusTotal||0)%60;
+  const stats2=[
+    {v:totalHrs+'h'+totalMin,s:'m',k:'Focus all-time'},
+    {v:d.totalSessions||0,s:'',k:'Total sessions'},
+    {v:bestStreak,s:'d',k:'Best streak'},
+    {v:(convos.log||[]).length,s:'',k:'Conversations'},
+  ];
+  $('#statRow2').html(stats2.map(s=>`<div class="stat"><div class="v">${s.v}<small>${s.s}</small></div><div class="k">${s.k}</div></div>`).join(''));
+
+  // Habit streaks
+  if(habits.length){
+    $('#habitStreaks').html(habits.map(h=>{
+      const pct=Math.min((h.streak||0)/30*100,100);
+      return `<div style="display:flex;align-items:center;gap:10px;margin:6px 0">
+        <span style="font:500 11px Archivo;width:100px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.name)}</span>
+        <div style="flex:1;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--ink);border-radius:4px"></div></div>
+        <span style="font:600 12px var(--mono);min-width:30px;text-align:right">${h.streak||0}d</span>
+      </div>`;
+    }).join(''));
+  } else {
+    $('#habitStreaks').html('<span style="color:var(--ink-3)">No habits tracked</span>');
+  }
+
+  // Recent conversations
+  const recent=(convos.log||[]).slice(-5).reverse();
+  if(recent.length){
+    $('#recentConvos').html(recent.map(c=>{
+      const t=new Date(c.time).toLocaleString();
+      return `<div style="margin:6px 0;padding:6px;border-bottom:1px solid var(--line)">
+        <div style="color:var(--ink-3);font-size:9px">${t}</div>
+        <div style="color:var(--ink)">You: ${esc(c.user)}</div>
+        <div>Ninja: ${esc(c.ninja)}</div>
+      </div>`;
+    }).join(''));
+  } else {
+    $('#recentConvos').html('<span style="color:var(--ink-3)">No conversations yet</span>');
+  }
+}
+
+// === CHAT ===
+$('#chatInput').on('keydown',async function(e){
+  if(e.key!=='Enter'||!this.value.trim())return;
+  const text=this.value.trim();this.value='';
+  $('#chatLog').append(`<div style="margin:8px 0;font:500 13px Archivo;color:var(--ink)">You: ${esc(text)}</div>`);
+  $('#chatLog').append(`<div style="margin:4px 0;font:400 11px var(--mono);color:var(--ink-3)" id="chatTyping">Ninja is thinking...</div>`);
+  $('#chatLog').scrollTop($('#chatLog')[0].scrollHeight);
+  const d=await post('chat',{text});
+  $('#chatTyping').remove();
+  $('#chatLog').append(`<div style="margin:8px 0;font:500 13px Archivo;color:var(--ink-2)">Ninja: ${esc(d.reply)}</div>`);
+  $('#chatLog').scrollTop($('#chatLog')[0].scrollHeight);
+});
+$('#summaryBtn').on('click',async function(){
+  $('#summaryStatus').text('Generating...');
+  const d=await post('summary',{});
+  $('#summaryStatus').text('');
+  $('#chatLog').append(`<div style="margin:8px 0;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);font:500 12px Archivo;color:var(--ink)">📊 ${esc(d.summary)}</div>`);
+  $('#chatLog').scrollTop($('#chatLog')[0].scrollHeight);
+});
+
+// === SETTINGS ===
+async function loadSettings(){
+  const [vol,faces,pers,tts,keys,conv]=await Promise.all([
+    api('volume'),api('faces'),api('personality'),api('tts'),api('keys'),api('conversations')
+  ]);
+  loadVersion();
+  $('#s-volume').val(vol.volume);$('#s-vol-val').text(vol.volume+'%');
+  $('#s-face-grid').html(faces.faces.map(f=>`<div class="chip" data-face="${f}">${f}</div>`).join(''));
+  $('#s-personality').val(pers.text);
+  $('#s-tts-voice').val(tts.voice);$('#s-tts-rate').val(tts.speakingRate);
+  $('#s-keys-list').html(Object.entries(keys.keys).map(([k,v])=>`<div style="font:400 11px var(--mono);color:var(--ink-2);margin:4px 0;display:flex;align-items:center;gap:8px"><strong>${k}:</strong> <span style="flex:1">${v}</span>${v!=='NOT SET'?`<button class="btn key-remove" data-key="${k}" style="font-size:9px;padding:2px 6px;height:auto;border-color:var(--ink-3);color:var(--ink-3)">remove</button>`:''}</div>`).join(''));
+  $('#s-keys-list').off('click','.key-remove').on('click','.key-remove',async function(){
+    const k=$(this).data('key');
+    if(!confirm('Remove '+k+'?'))return;
+    if(k==='GOOGLE_TTS'){await post('keys/remove-google',{})}
+    else{await post('keys',{key:k,value:''})}
+    loadSettings();
+  });
+  if(conv.log&&conv.log.length){
+    $('#s-conv-log').html(conv.log.map(e=>{const t=new Date(e.time).toLocaleTimeString();return `<div style="margin:4px 0"><strong>[${t}]</strong> ${esc(e.user)}<br><span style="color:var(--ink)">${esc(e.ninja)}</span></div>`}).join(''));
+  }
+}
+let sVolTimeout;
+$(document).on('input','#s-volume',function(){$('#s-vol-val').text(this.value+'%');clearTimeout(sVolTimeout);sVolTimeout=setTimeout(()=>post('volume',{volume:+this.value}),200)});
+$('#s-face-grid').on('click','.chip',async function(){
+  const f=$(this).data('face');
+  await post('face',{face:f,playOnce:$('#s-play-once').is(':checked')});
+});
+$('#s-pers-save').on('click',async function(){await post('personality',{text:$('#s-personality').val()});$('#s-pers-status').text('Saved — restart to apply');$('#s-pers-restart').show()});
+$('#s-pers-reset').on('click',async function(){const d=await post('personality/reset',{});$('#s-personality').val(d.text);$('#s-pers-status').text('Reset to default — restart to apply');$('#s-pers-restart').show()});
+$('#s-pers-restart').on('click',async function(){$(this).text('Restarting...');await post('restart',{});setTimeout(()=>location.reload(),3000)})
+$('#s-tts-save').on('click',async function(){
+  $(this).text('Saving...').css({background:'var(--ink)',color:'#fff'});
+  await post('tts',{voice:$('#s-tts-voice').val(),speakingRate:+$('#s-tts-rate').val()});
+  $(this).text('Saved ✓');
+  $('#s-tts-status').text('Applied immediately');
+  setTimeout(()=>{$(this).text('Save').css({background:'',color:''});$('#s-tts-status').text('')},2000);
+})
+// Show/hide Google JSON textarea based on dropdown
+$('#s-key-name').on('change',function(){
+  $('#s-google-paste').toggle($(this).val()==='GOOGLE_TTS');
+  $('#s-key-value').toggle($(this).val()!=='GOOGLE_TTS');
+});
+
+$('#s-key-save').on('click',async function(){
+  const k=$('#s-key-name').val();
+  if(k==='GOOGLE_TTS'){
+    const json=$('#s-google-key').val().trim();
+    if(!json)return;
+    try{JSON.parse(json)}catch{alert('Invalid JSON');return}
+    $(this).text('Saving...');
+    await post('setup/google-key',{json});
+    $('#s-google-key').val('');
+  }else{
+    const v=$('#s-key-value').val();if(!v)return;
+    $(this).text('Saving...');
+    await post('keys',{key:k,value:v});
+    $('#s-key-value').val('');
+  }
+  $(this).text('Saved ✓');
+  setTimeout(()=>$(this).text('Set'),2000);
+  loadSettings();
+})
+$('#s-test-speaker').on('click',async function(){$('#s-test-status').text('Testing...');const d=await post('test/speaker',{});$('#s-test-status').text(d.ok?'Speaker OK':'FAILED')});
+$('#s-test-mic').on('click',async function(){$('#s-test-status').text('Recording...');const d=await post('test/mic',{});$('#s-test-status').text(d.ok?'Mic OK':'FAILED')});
+$('#s-test-display').on('click',async function(){$('#s-test-status').text('Testing...');const d=await post('test/display',{});$('#s-test-status').text(d.ok?'Display OK':'FAILED')});
+$('#s-restart').on('click',async function(){if(!confirm('Restart?'))return;await post('restart',{});$('#s-test-status').text('Restarting...')})
+async function loadVersion(){const d=await api('version');$('#s-version').text(d.hash+' — '+d.message)}
+$('#s-check-btn').on('click',async function(){
+  $(this).text('Checking...').css({background:'var(--ink)',color:'#fff'});
+  const d=await post('check-update',{});
+  if(d.available){
+    $(this).text('Update available!');
+    $('#s-update-info').html(d.commits.length+' new commit'+(d.commits.length>1?'s':'')+':'+d.commits.map(c=>'<br>· '+esc(c)).join(''));
+    $('#s-update-btn').show();
+  }else{
+    $(this).text('Up to date ✓').css({background:'var(--surface)',color:'var(--ink)'});
+    $('#s-update-info').text('');
+    $('#s-update-btn').hide();
+    setTimeout(()=>$(this).text('Check for Updates').css({background:'',color:''}),3000);
+  }
+});
+$('#s-update-btn').on('click',async function(){
+  $(this).text('Installing...').css({background:'var(--ink)',color:'#fff'});
+  const d=await post('update',{});
+  if(d.restarting){
+    $(this).text('Restarting...');
+    $('#s-update-status').text('Update installed — waiting for restart...');
+    // Poll until server is back, then reload
+    let attempts=0;
+    const poll=()=>{
+      attempts++;
+      $('#s-update-status').text('Waiting for server... ('+attempts+')');
+      fetch('/api/version',{cache:'no-store'}).then(r=>{
+        if(r.ok) window.location.href=window.location.pathname+'?t='+Date.now();
+        else setTimeout(poll,2000);
+      }).catch(()=>setTimeout(poll,2000));
+    };
+    setTimeout(poll,4000);
+  }else{
+    $(this).text(d.output);
+    setTimeout(()=>$(this).hide(),3000);
+  }
+});
+async function restartService(){if(!confirm('Restart ninja service?'))return;await post('restart',{});$('#s-test-status').text('Restarting...')}
+
+// === PATREON ===
+async function loadPatreon(){
+  try{
+    const p=await api('patreon/latest');
+    if(!p)return;
+    $('#patreonTitle').text(p.title);
+    $('#patreonDate').text(new Date(p.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}));
+    $('#patreonCard').css('display','flex');
+  }catch{}
+}
+
+// === INIT ===
+updateDayNav();updateHabitDayNav();loadTasks();loadHabits();renderFocus();loadPatreon();
+
+});
+</script>
+</body>
+</html>

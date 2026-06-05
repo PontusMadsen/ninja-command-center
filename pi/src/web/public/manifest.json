@@ -1,0 +1,13 @@
+{
+  "name": "Ninja — Focus & Tasks",
+  "short_name": "Ninja",
+  "description": "Focus, tasks & habits with your desk ninja",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8e8e6",
+  "theme_color": "#161616",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

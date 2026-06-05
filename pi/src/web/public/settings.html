@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NINJA SETTINGS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; color: #0f0; font-family: 'Courier New', monospace; font-size: 14px; padding: 20px; max-width: 900px; margin: 0 auto; }
+h1 { color: #0f0; font-size: 20px; border-bottom: 1px solid #0a0; padding-bottom: 8px; margin-bottom: 16px; }
+h2 { color: #0c0; font-size: 16px; margin: 20px 0 8px; }
+h2::before { content: '>> '; color: #080; }
+.section { border: 1px solid #0a0; padding: 12px; margin: 12px 0; }
+.row { display: flex; align-items: center; gap: 10px; margin: 6px 0; flex-wrap: wrap; }
+label { color: #0a0; min-width: 120px; }
+input[type=range] { -webkit-appearance: none; background: #030; height: 6px; border: 1px solid #0a0; flex: 1; min-width: 150px; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #0f0; border: none; cursor: pointer; }
+input[type=text], input[type=password], input[type=number] { background: #010; color: #0f0; border: 1px solid #0a0; padding: 4px 8px; font-family: inherit; font-size: 13px; flex: 1; min-width: 200px; }
+input:focus, textarea:focus { outline: none; border-color: #0f0; box-shadow: 0 0 5px #0f0; }
+textarea { background: #010; color: #0f0; border: 1px solid #0a0; padding: 8px; font-family: inherit; font-size: 13px; width: 100%; height: 150px; resize: vertical; }
+button { background: #010; color: #0f0; border: 1px solid #0a0; padding: 5px 12px; font-family: inherit; font-size: 13px; cursor: pointer; }
+button:hover { background: #0a0; color: #000; }
+button.danger { border-color: #a00; color: #f00; }
+button.danger:hover { background: #a00; color: #000; }
+.val { color: #0f0; font-weight: bold; }
+.dim { color: #060; }
+.face-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+.face-btn { font-size: 11px; padding: 3px 8px; }
+.face-btn.active { background: #0a0; color: #000; }
+.log { max-height: 300px; overflow-y: auto; border: 1px solid #050; padding: 8px; margin-top: 8px; font-size: 12px; }
+.log-entry { margin: 4px 0; }
+.log-user { color: #0a0; }
+.log-ninja { color: #0f0; }
+.log-time { color: #050; }
+a { color: #0f0; }
+#toast { position: fixed; bottom: 20px; right: 20px; background: #0a0; color: #000; padding: 8px 16px; display: none; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>NINJA SETTINGS <a href="/" style="float:right;font-size:13px">[BACK TO APP]</a></h1>
+
+<!-- STATUS -->
+<div class="section">
+  <h2>STATUS</h2>
+  <div class="row"><label>Face:</label> <span class="val" id="s-face">---</span></div>
+  <div class="row"><label>Wake Word:</label> <span class="val" id="s-wake">---</span></div>
+  <div class="row"><label>Uptime:</label> <span class="val" id="s-uptime">---</span></div>
+</div>
+
+<!-- VOLUME -->
+<div class="section">
+  <h2>VOLUME</h2>
+  <div class="row">
+    <label>Speaker:</label>
+    <input type="range" id="volume" min="0" max="100" value="60">
+    <span class="val" id="vol-val">60%</span>
+  </div>
+</div>
+
+<!-- FACE CONTROL -->
+<div class="section">
+  <h2>FACE CONTROL</h2>
+  <div class="face-grid" id="face-grid"></div>
+  <div class="row" style="margin-top: 8px;">
+    <label>Play Once:</label>
+    <input type="checkbox" id="play-once">
+    <span class="dim">(full animation, no loop)</span>
+  </div>
+</div>
+
+<!-- WAKE WORD -->
+<div class="section">
+  <h2>WAKE WORD</h2>
+  <div class="row">
+    <button id="wake-toggle">Toggle</button>
+    <span id="wake-status" class="val">---</span>
+  </div>
+</div>
+
+<!-- CONVERSATION LOG -->
+<div class="section">
+  <h2>CONVERSATION LOG</h2>
+  <div class="log" id="conv-log"><span class="dim">No conversations yet</span></div>
+</div>
+
+<!-- PERSONALITY -->
+<div class="section">
+  <h2>PERSONALITY PROMPT</h2>
+  <textarea id="personality"></textarea>
+  <div class="row" style="margin-top: 8px;">
+    <button onclick="savePersonality()">SAVE</button>
+    <span class="dim" id="personality-status"></span>
+  </div>
+</div>
+
+<!-- TTS SETTINGS -->
+<div class="section">
+  <h2>TTS SETTINGS</h2>
+  <div class="row"><label>Voice:</label> <input type="text" id="tts-voice"></div>
+  <div class="row"><label>Speaking Rate:</label> <input type="number" id="tts-rate" step="0.05" min="0.5" max="2.0"></div>
+  <div class="row"><button onclick="saveTTS()">SAVE</button> <span class="dim" id="tts-status"></span></div>
+</div>
+
+<!-- API KEYS -->
+<div class="section">
+  <h2>API KEYS</h2>
+  <div id="keys-list"></div>
+  <div class="row" style="margin-top: 8px;">
+    <select id="key-name" style="background: #010; color: #0f0; border: 1px solid #0a0; padding: 4px; font-family: inherit;">
+      <option value="GROQ_API_KEY">GROQ_API_KEY</option>
+      <option value="ANTHROPIC_API_KEY">ANTHROPIC_API_KEY</option>
+    </select>
+    <input type="password" id="key-value" placeholder="new value">
+    <button onclick="saveKey()">SET</button>
+  </div>
+</div>
+
+<!-- DIAGNOSTICS -->
+<div class="section">
+  <h2>DIAGNOSTICS</h2>
+  <div class="row">
+    <button onclick="testSpeaker()">TEST SPEAKER</button>
+    <button onclick="testMic()">TEST MIC</button>
+    <button onclick="testDisplay()">TEST DISPLAY</button>
+    <button class="danger" onclick="restartService()">RESTART SERVICE</button>
+  </div>
+  <div class="dim" id="test-status" style="margin-top: 6px;"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2000); }
+async function api(path, opts) { return (await fetch('/api/' + path, opts)).json(); }
+async function post(path, body) { return api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+
+async function refreshStatus() {
+  try {
+    const s = await api('status');
+    document.getElementById('s-face').textContent = s.face;
+    document.getElementById('s-wake').textContent = s.wakeWordActive ? 'LISTENING' : 'OFF';
+    document.getElementById('s-uptime').textContent = Math.floor(s.uptime / 3600) + 'h ' + Math.floor((s.uptime % 3600) / 60) + 'm';
+  } catch {}
+}
+
+const volSlider = document.getElementById('volume');
+const volVal = document.getElementById('vol-val');
+let volTimeout = null;
+volSlider.addEventListener('input', () => { volVal.textContent = volSlider.value + '%'; clearTimeout(volTimeout); volTimeout = setTimeout(() => post('volume', { volume: parseInt(volSlider.value) }), 200); });
+async function loadVolume() { const d = await api('volume'); volSlider.value = d.volume; volVal.textContent = d.volume + '%'; }
+
+async function loadFaces() { const d = await api('faces'); document.getElementById('face-grid').innerHTML = d.faces.map(f => `<button class="face-btn" onclick="triggerFace('${f}')">${f}</button>`).join(''); }
+async function triggerFace(face) { await post('face', { face, playOnce: document.getElementById('play-once').checked }); }
+
+document.getElementById('wake-toggle').addEventListener('click', async () => { const s = await api('status'); const d = await post('wake', { active: !s.wakeWordActive }); document.getElementById('wake-status').textContent = d.active ? 'ENABLED' : 'DISABLED'; });
+
+async function loadConversations() { const d = await api('conversations'); const log = document.getElementById('conv-log'); if (!d.log || !d.log.length) { log.innerHTML = '<span class="dim">No conversations yet</span>'; return; } log.innerHTML = d.log.map(e => { const t = new Date(e.time).toLocaleTimeString(); return `<div class="log-entry"><span class="log-time">[${t}]</span> <span class="log-user">USER: ${e.user}</span><br><span class="log-time">[${t}]</span> <span class="log-ninja">NINJA: ${e.ninja}</span></div>`; }).join(''); log.scrollTop = log.scrollHeight; }
+
+async function loadPersonality() { const d = await api('personality'); document.getElementById('personality').value = d.text; }
+async function savePersonality() { await post('personality', { text: document.getElementById('personality').value }); document.getElementById('personality-status').textContent = 'SAVED'; toast('Saved'); }
+
+async function loadTTS() { const d = await api('tts'); document.getElementById('tts-voice').value = d.voice; document.getElementById('tts-rate').value = d.speakingRate; }
+async function saveTTS() { await post('tts', { voice: document.getElementById('tts-voice').value, speakingRate: parseFloat(document.getElementById('tts-rate').value) }); document.getElementById('tts-status').textContent = 'SAVED'; toast('Saved'); }
+
+async function loadKeys() { const d = await api('keys'); document.getElementById('keys-list').innerHTML = Object.entries(d.keys).map(([k, v]) => `<div class="row"><label>${k}:</label> <span class="dim">${v}</span></div>`).join(''); }
+async function saveKey() { const key = document.getElementById('key-name').value; const value = document.getElementById('key-value').value; if (!value) return; await post('keys', { key, value }); document.getElementById('key-value').value = ''; loadKeys(); toast('Key updated'); }
+
+async function testSpeaker() { document.getElementById('test-status').textContent = 'Testing...'; const d = await post('test/speaker', {}); document.getElementById('test-status').textContent = d.ok ? 'Speaker OK' : 'FAILED'; }
+async function testMic() { document.getElementById('test-status').textContent = 'Recording...'; const d = await post('test/mic', {}); document.getElementById('test-status').textContent = d.ok ? 'Mic OK' : 'FAILED'; }
+async function testDisplay() { document.getElementById('test-status').textContent = 'Testing...'; const d = await post('test/display', {}); document.getElementById('test-status').textContent = d.ok ? 'Display OK' : 'FAILED'; }
+async function restartService() { if (!confirm('Restart?')) return; await post('restart', {}); document.getElementById('test-status').textContent = 'Restarting...'; }
+
+(async () => { await Promise.all([loadVolume(), loadFaces(), loadPersonality(), loadTTS(), loadKeys(), loadConversations(), refreshStatus()]); setInterval(refreshStatus, 3000); setInterval(loadConversations, 10000); })();
+</script>
+</body>
+</html>

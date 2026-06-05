@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/
+frames
+*.onnx
+google-tts-key.json
+google-calendar-key.json

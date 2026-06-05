@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ninja — First Time Setup</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{--bg:#e8e8e6;--surface:#ffffff;--surface-3:#f1f1ef;--ink:#161616;--ink-2:#5e5e5c;--ink-3:#9b9b98;--line:#e7e7e4;--line-2:#d6d6d2;--r:8px;--mono:'JetBrains Mono',ui-monospace,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Archivo',sans-serif;background:var(--bg);background-image:radial-gradient(circle,rgba(0,0,0,0.055) 0.6px,transparent 0.6px);background-size:22px 22px;color:var(--ink);display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;font-size:13px}
+.setup{width:min(520px,96vw);background:var(--surface);border:1px solid var(--line-2);border-radius:13px;box-shadow:0 28px 60px -26px rgba(0,0,0,.4);padding:32px;overflow:hidden}
+h1{font-size:20px;font-weight:700;margin-bottom:4px}
+.sub{font:500 10px/1 var(--mono);color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px}
+.step{display:none;animation:fade .22s ease}
+.step.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+h2{font-size:15px;font-weight:600;margin-bottom:12px}
+p{color:var(--ink-2);margin-bottom:16px;line-height:1.5}
+label{display:block;font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;margin-top:16px}
+input[type=text],input[type=password]{width:100%;border:1px solid var(--line-2);border-radius:var(--r);padding:10px 12px;font:400 13px 'Archivo';background:var(--surface)}
+input:focus{outline:none;border-color:var(--ink)}
+textarea{width:100%;border:1px solid var(--line-2);border-radius:var(--r);padding:10px;font:400 11px var(--mono);background:var(--surface-3);height:80px;resize:none}
+.btn{border:1px solid var(--line-2);background:var(--surface);cursor:pointer;border-radius:var(--r);font:600 11px 'Archivo';color:var(--ink);padding:10px 20px;transition:.14s}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.btn.primary:hover{background:#000}
+.btn-row{display:flex;gap:8px;margin-top:24px;justify-content:flex-end}
+.status{font:500 10px var(--mono);color:var(--ink-3);margin-top:8px;min-height:14px}
+.status.ok{color:#2a7}
+.status.err{color:#c44}
+.progress-dots{display:flex;gap:6px;margin-bottom:20px}
+.progress-dots i{width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+.progress-dots i.done{background:var(--ink)}
+.progress-dots i.current{background:var(--ink);box-shadow:0 0 0 3px var(--surface),0 0 0 4.5px var(--line-2)}
+.help{font:400 11px var(--mono);color:var(--ink-3);margin-top:6px}
+.help a{color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<div class="setup">
+  <h1>Welcome, Ninja</h1>
+  <div class="sub">First time setup</div>
+  <div class="progress-dots" id="dots"></div>
+
+  <!-- Step 1: API Keys -->
+  <div class="step active" data-step="1">
+    <h2>API Keys</h2>
+    <p>The ninja needs cloud APIs for speech recognition and intelligence. All keys stay on this device.</p>
+
+    <label>Groq API Key (for speech-to-text)</label>
+    <input type="password" id="groq-key" placeholder="gsk_...">
+    <div class="help">Get one free at <a href="https://console.groq.com" target="_blank">console.groq.com</a></div>
+
+    <label>Anthropic API Key (for the ninja's brain)</label>
+    <input type="password" id="anthropic-key" placeholder="sk-ant-...">
+    <div class="help">Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+
+    <div class="status" id="keys-status"></div>
+    <div class="btn-row">
+<button class="btn primary" id="save-keys">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Google TTS (optional) -->
+  <div class="step" data-step="2">
+    <h2>Google Cloud TTS (Optional)</h2>
+    <p>For the best Japanese-accented voice. Skip this to use the free fallback voice.</p>
+
+    <label>Google Service Account JSON</label>
+    <textarea id="google-key" placeholder='Paste the entire JSON key file here...'></textarea>
+    <div class="help">Create a service account at <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a> with Text-to-Speech API enabled</div>
+
+    <div class="status" id="google-status"></div>
+    <div class="btn-row">
+      <button class="btn" id="skip-google">Skip</button>
+      <button class="btn primary" id="save-google">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Speaker Test -->
+  <div class="step" data-step="3">
+    <h2>Speaker Test</h2>
+    <p>Let's make sure the ninja can talk to you.</p>
+
+    <div class="btn-row" style="justify-content:flex-start">
+      <button class="btn" id="test-speak">Play Test Sound</button>
+    </div>
+    <div class="status" id="speaker-status"></div>
+
+    <label style="margin-top:20px">Volume</label>
+    <input type="range" id="setup-volume" min="0" max="100" step="5" value="85" style="width:100%;accent-color:var(--ink)">
+
+    <div class="btn-row">
+      <button class="btn" id="back-2">Back</button>
+      <button class="btn primary" id="next-3">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Mic Test -->
+  <div class="step" data-step="4">
+    <h2>Microphone Test</h2>
+    <p>Say something — the ninja will play it back to you.</p>
+
+    <div class="btn-row" style="justify-content:flex-start">
+      <button class="btn" id="test-mic">Record & Play Back</button>
+    </div>
+    <div class="status" id="mic-status"></div>
+
+    <div class="btn-row">
+      <button class="btn" id="back-3">Back</button>
+      <button class="btn primary" id="next-4">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Done -->
+  <div class="step" data-step="5">
+    <h2>Ready!</h2>
+    <p>The ninja is all set up. Say <strong>"Hey Cookie"</strong> to start a conversation.</p>
+    <p>You can change settings anytime from the app's settings panel.</p>
+
+    <div class="btn-row">
+      <button class="btn primary" id="finish">Launch App</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STEPS = 5;
+let current = 1;
+
+function showStep(n) {
+  current = n;
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[data-step="${n}"]`).classList.add('active');
+  const dots = document.getElementById('dots');
+  dots.innerHTML = Array.from({length: STEPS}, (_, i) => {
+    const cls = i + 1 < n ? 'done' : i + 1 === n ? 'current' : '';
+    return `<i class="${cls}"></i>`;
+  }).join('');
+}
+
+async function post(path, body) {
+  const r = await fetch('/api/' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// Step 1: Save API keys
+document.getElementById('save-keys').addEventListener('click', async () => {
+  const groq = document.getElementById('groq-key').value.trim();
+  const anthropic = document.getElementById('anthropic-key').value.trim();
+  const status = document.getElementById('keys-status');
+
+  if (!groq || !anthropic) {
+    status.textContent = 'Both keys are required';
+    status.className = 'status err';
+    return;
+  }
+
+  status.textContent = 'Saving...';
+  status.className = 'status';
+  await post('keys', { key: 'GROQ_API_KEY', value: groq });
+  await post('keys', { key: 'ANTHROPIC_API_KEY', value: anthropic });
+  status.textContent = 'Keys saved!';
+  status.className = 'status ok';
+  setTimeout(() => showStep(2), 500);
+});
+
+// Step 2: Google TTS
+document.getElementById('save-google').addEventListener('click', async () => {
+  const json = document.getElementById('google-key').value.trim();
+  const status = document.getElementById('google-status');
+
+  try {
+    JSON.parse(json);
+  } catch {
+    status.textContent = 'Invalid JSON';
+    status.className = 'status err';
+    return;
+  }
+
+  status.textContent = 'Saving...';
+  await post('setup/google-key', { json });
+  status.textContent = 'Saved!';
+  status.className = 'status ok';
+  setTimeout(() => showStep(3), 500);
+});
+
+document.getElementById('skip-google').addEventListener('click', () => showStep(3));
+
+// Step 3: Speaker
+document.getElementById('test-speak').addEventListener('click', async () => {
+  const status = document.getElementById('speaker-status');
+  status.textContent = 'Playing...';
+  const d = await post('test/speaker', {});
+  status.textContent = d.ok ? 'Did you hear it?' : 'No sound — check speaker connection';
+  status.className = d.ok ? 'status ok' : 'status err';
+});
+
+document.getElementById('setup-volume').addEventListener('change', async (e) => {
+  await post('volume', { volume: parseInt(e.target.value) });
+});
+
+document.getElementById('back-2').addEventListener('click', () => showStep(2));
+document.getElementById('next-3').addEventListener('click', () => showStep(4));
+
+// Step 4: Mic
+document.getElementById('test-mic').addEventListener('click', async () => {
+  const status = document.getElementById('mic-status');
+  status.textContent = 'Recording 2 seconds...';
+  const d = await post('test/mic', {});
+  status.textContent = d.ok ? 'Did you hear yourself?' : 'Mic not working — check HAT connection';
+  status.className = d.ok ? 'status ok' : 'status err';
+});
+
+document.getElementById('back-3').addEventListener('click', () => showStep(3));
+document.getElementById('next-4').addEventListener('click', () => showStep(5));
+
+// Step 5: Done
+document.getElementById('finish').addEventListener('click', async () => {
+  await post('setup/complete', {});
+  window.location.href = '/';
+});
+
+showStep(1);
+</script>
+</body>
+</html>

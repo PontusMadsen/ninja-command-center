@@ -1,0 +1,143 @@
+{
+  "reactions": [
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap",
+        "zone": "center"
+      },
+      "face": "happy",
+      "duration": 1500,
+      "probability": 0.7,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap",
+        "zone": "top"
+      },
+      "face": "surprised",
+      "duration": 1000,
+      "probability": 0.8,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap",
+        "zone": "left"
+      },
+      "face": "confused",
+      "duration": 1500,
+      "probability": 0.6,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap",
+        "zone": "right"
+      },
+      "face": "confused",
+      "duration": 1500,
+      "probability": 0.6,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap",
+        "zone": "bottom"
+      },
+      "face": "sad",
+      "duration": 1500,
+      "probability": 0.7,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "tap"
+      },
+      "face": "happy",
+      "duration": 1000,
+      "probability": 0.5,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "long_press"
+      },
+      "face": "sad",
+      "duration": 2000,
+      "probability": 0.8,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "touch",
+        "action": "double_tap"
+      },
+      "face": "happy",
+      "duration": 2000,
+      "probability": 0.9,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "pickup"
+      },
+      "face": "surprised",
+      "duration": 1500,
+      "probability": 0.9,
+      "cooldown": 5000
+    },
+    {
+      "match": {
+        "event": "setdown"
+      },
+      "face": "idle",
+      "duration": 0,
+      "probability": 1.0,
+      "cooldown": 1000
+    },
+    {
+      "match": {
+        "event": "shake"
+      },
+      "face": "confused",
+      "duration": 2000,
+      "probability": 0.8,
+      "cooldown": 3000
+    },
+    {
+      "match": {
+        "event": "idle"
+      },
+      "face": "sleeping",
+      "duration": 0,
+      "probability": 1.0,
+      "cooldown": 0
+    },
+    {
+      "match": {
+        "event": "long_idle"
+      },
+      "face": "sleeping",
+      "duration": 0,
+      "probability": 1.0,
+      "cooldown": 0
+    },
+    {
+      "match": {
+        "event": "active"
+      },
+      "face": "happy",
+      "duration": 1500,
+      "probability": 1.0,
+      "cooldown": 0
+    }
+  ]
+}
