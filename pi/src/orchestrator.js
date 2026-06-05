@@ -218,8 +218,7 @@ async function main() {
   // Start idle behavior loop
   idle.start();
 
-  // Start web UI
-  startWebServer({
+  const ninjaState = {
     get currentFace() { return 'idle'; },
     get wakeWordActive() { return wakeListener?.running || false; },
     get voiceActive() { return voiceActive; },
@@ -229,7 +228,61 @@ async function main() {
     playOnce,
     startWakeWord: () => wakeListener?.start(),
     stopWakeWord: () => wakeListener?.stop(),
-  });
+    setThought: null,
+  };
+
+  // Start web UI
+  await startWebServer(ninjaState);
+
+  // --- Hub-aware ninja behaviors ---
+  let lastTrackId = null;
+  let lastMailCount = 0;
+  let lastCalendarAlert = null;
+
+  async function checkHubEvents() {
+    try {
+      const { getNowPlaying } = await import('./integrations/spotify.js');
+      const np = getNowPlaying();
+      if (np?.playing && np.trackId && np.trackId !== lastTrackId) {
+        lastTrackId = np.trackId;
+        if (ninjaState.setThought) {
+          ninjaState.setThought(`♪ ${np.track} — ${np.artist}`, 'music');
+        }
+      }
+
+      const { getMailState } = await import('./integrations/mail.js');
+      const ms = getMailState();
+      if (ms.unread > lastMailCount && lastMailCount >= 0) {
+        const diff = ms.unread - lastMailCount;
+        if (diff > 0 && ninjaState.setThought) {
+          ninjaState.setThought(`${diff} new mail...`, 'alert');
+        }
+      }
+      lastMailCount = ms.unread;
+
+      const { getNextEvent } = await import('./integrations/calendar.js');
+      const next = getNextEvent();
+      if (next && !next.allDay) {
+        const start = new Date(next.start);
+        const minsUntil = (start - Date.now()) / 60000;
+        if (minsUntil > 0 && minsUntil <= 10 && lastCalendarAlert !== next.id) {
+          lastCalendarAlert = next.id;
+          if (ninjaState.setThought) {
+            ninjaState.setThought(`${next.title} in ${Math.round(minsUntil)}min`, 'calendar');
+          }
+        }
+      }
+
+      const { getWeather } = await import('./integrations/weather.js');
+      const w = getWeather();
+      // Occasionally show weather in thought bubble (every ~5 min cycle)
+      if (w && w.temp != null && !np?.playing && ms.unread === lastMailCount) {
+        // Only show weather if nothing more interesting is happening
+      }
+    } catch {}
+  }
+
+  setInterval(checkHubEvents, 10000);
 
   logger.info('Orchestrator running — say "Hey Cookie" to talk');
 
