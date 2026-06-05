@@ -23,7 +23,7 @@ MIC_DIRECT = os.environ.get('MIC_DIRECT', '')
 
 SAMPLE_RATE = 16000
 CHUNK_SAMPLES = 1280  # 80ms at 16kHz
-THRESHOLD = 0.15
+THRESHOLD = 0.5
 COOLDOWN_SEC = 10
 
 def main():
@@ -95,10 +95,9 @@ def main():
                     continue
 
                 for i in range(0, len(data) - CHUNK_SAMPLES, CHUNK_SAMPLES):
-                    model.predict(data[i:i+CHUNK_SAMPLES])
-                    for name, scores in model.prediction_buffer.items():
+                    result = model.predict(data[i:i+CHUNK_SAMPLES])
+                    for name, score in result.items():
                         if name != target_model: continue
-                        score = scores[-1]
                         if score > threshold:
                             now = time.time()
                             if now - last_detection > COOLDOWN_SEC:
@@ -131,11 +130,10 @@ def main():
                     left_16k = left[::3]
                     left_16 = (left_16k >> 16).astype(np.int16)
 
-                    model.predict(left_16)
+                    result = model.predict(left_16)
 
-                    for name, scores in model.prediction_buffer.items():
+                    for name, score in result.items():
                         if name != target_model: continue
-                        score = scores[-1]
                         if score > threshold:
                             now = time.time()
                             if now - last_detection > COOLDOWN_SEC:

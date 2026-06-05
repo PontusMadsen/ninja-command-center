@@ -18,7 +18,7 @@ const FRAMES_DIR = join(__dirname, '..', 'frames-pitft');
 
 const FACE_MAP = {
   idle: 'this_is_default', happy: 'smile', sad: 'cry', angry: 'angry',
-  surprised: 'WHAT', sleeping: 'sleeping', confused: 'dizzy',
+  surprised: 'hihi', sleeping: 'sleeping', confused: 'dizzy',
   focused: 'squint', scared: 'scared', talking: 'talking',
   // Extended faces
   love: 'love', wow: 'wow', yell: 'yell', devil: 'devil_1',
@@ -71,21 +71,27 @@ function stopLoop() {
   loopIdx = 0;
 }
 
+const FRAME_DELAY_MS = 60;  // match original GIF timing (~16fps)
+
 async function tickLoop() {
   if (loopFrames.length === 0) return;
   if (sending) return;
 
   sending = true;
+  const t0 = Date.now();
   try {
     await sendFrame(loopFrames[loopIdx]);
     loopIdx = (loopIdx + 1) % loopFrames.length;
   } catch (e) {
     logger.warn({ err: e.message }, 'Frame send failed');
   }
+  // Subtract render time from delay so timing stays consistent
+  const elapsed = Date.now() - t0;
+  const wait = Math.max(FRAME_DELAY_MS - elapsed, 10);
   sending = false;
 
   if (loopFrames.length > 0) {
-    loopTimer = setTimeout(tickLoop, 80);  // ~12 fps
+    loopTimer = setTimeout(tickLoop, wait);
   }
 }
 
@@ -145,7 +151,11 @@ export function playOnce(animName) {
 
     for (const frame of frames) {
       if (!py || py.killed) break;
+      const t0 = Date.now();
       await sendFrame(frame);
+      const elapsed = Date.now() - t0;
+      const wait = Math.max(FRAME_DELAY_MS - elapsed, 10);
+      await new Promise(r => setTimeout(r, wait));
     }
     resolve();
   });
