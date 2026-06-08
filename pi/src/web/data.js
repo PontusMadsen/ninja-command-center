@@ -124,7 +124,11 @@ export function getWorkspaces() {
 function loadHabits() { return load('habits.json') || []; }
 function saveHabits(habits) { save('habits.json', habits); }
 
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() {
+  // Use local timezone, not UTC
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export function getHabits(date = null) {
   const habits = loadHabits();
