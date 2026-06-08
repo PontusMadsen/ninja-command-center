@@ -6,6 +6,7 @@ After=network.target sound.target
 Type=simple
 User=command-center
 WorkingDirectory=/home/command-center/ninja-command-center/pi
+ExecStartPre=/bin/bash -c 'echo 0 > /sys/class/graphics/fbcon/cursor_blink; echo -e "\033[?25l" > /dev/tty1; echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null || true'
 ExecStart=/usr/bin/node src/orchestrator.js
 Restart=on-failure
 RestartSec=5

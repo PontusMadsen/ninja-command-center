@@ -139,7 +139,11 @@ async function handleVoiceTurn() {
 
     // First turn — triggered by wake word
     setFace('surprised');
-    await new Promise(r => setTimeout(r, 500));
+    // Say "Yeeeees?" so user knows ninja is listening
+    try {
+      const greeting = await synthesize('いぇーーーす？');
+      if (greeting) await playFile(greeting, AUDIO_DEVICE);
+    } catch {}
 
     let audio = await recordAudio(5);
     if (!audio) { setFace('idle'); return; }
