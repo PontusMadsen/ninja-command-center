@@ -54,9 +54,13 @@ The original Desk Ninja ran on a Pi Zero 2 W with a tiny 128×64 OLED. The Comma
 
 **Integrations**
 - Spotify — now playing, track skip, play/pause via touch
-- Google Calendar — upcoming events, <5 min warnings
+- Calendar — upcoming events, <5 min warnings (CalDAV: supports iCloud Calendar, Google Calendar, and others)
 - Gmail — unread count
 - Weather — current conditions when Spotify is paused
+
+**Calendar Support**
+- CalDAV integration — works with Apple/iCloud Calendar, Google Calendar, and any CalDAV provider
+- Configure via web UI with your CalDAV server URL and credentials
 
 **Touch Interactions**
 - Left screen: tap to start/stop Pomodoro, double-tap to skip break
@@ -135,7 +139,7 @@ Say **"Hey Ninja"** — the face reacts, then ask your question. Or just tap the
 | [Anthropic](https://console.anthropic.com) | AI personality (Claude Haiku) | Pay-as-you-go |
 | [Google Cloud](https://console.cloud.google.com) | Text-to-speech (optional) | Free tier: 1M chars/month |
 | [Spotify](https://developer.spotify.com) | Now playing + playback control | Free |
-| [Google Calendar](https://console.cloud.google.com) | Upcoming events | Free |
+| CalDAV Calendar | Upcoming events (iCloud, Google, etc.) | Use your existing account |
 
 ## Project Structure
 
@@ -192,7 +196,7 @@ Break nudges match the personality:
 
 ## Sprite Animation
 
-The crossscreen ninja run uses hand-crafted pixel art sprites:
+The crossscreen ninja run — a full-hour animation moment where the pixel ninja crosses all 3 displays:
 
 ![Ninja crossscreen run](pi/assets/sprites/ninja_run_crossscreen.gif)
 
