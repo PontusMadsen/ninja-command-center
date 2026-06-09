@@ -310,4 +310,6 @@ pi/personality/
 7. **Focus/Pomodoro** — timer on left screen + crossscreen done celebration
 8. **Nudges** — break messages from ninja
 9. **Right screen extras** — calendar, mail, weather rotation
-10. **Polish** — all other crossscreen moments, animations, refinement
+10. **CalDAV calendar** — replace Google Calendar with CalDAV (iCloud, Google, any provider)
+11. **Ninja nudges** — proactive messages from ninja (hydration, posture, break reminders, time-of-day awareness)
+12. **Polish** — all other crossscreen moments, animations, refinement
