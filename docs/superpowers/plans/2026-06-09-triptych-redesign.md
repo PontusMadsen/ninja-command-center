@@ -288,14 +288,14 @@ pi/personality/
 
 ---
 
-## Open Questions / Decisions Needed
+## Decisions (Resolved 2026-06-09)
 
-- [ ] Clock screen aesthetic — minimal/clean or styled (dot-matrix like dokidek_)?
-- [ ] Right screen: does Spotify always show, or does it rotate with calendar/mail?
-- [ ] Full-hour animation: pick a hero style (kanji? typography? ninja run?)
-- [ ] Physical enclosure: 3D-print or laser-cut? What material/color?
-- [ ] Rotary encoder? dokidek_ has one — useful for volume or focus timer
-- [ ] Frames orientation: current frames are 320×240 landscape — ILI9341 in portrait is 240×320. Resize strategy?
+- [x] **Clock aesthetic** → Japanese typography — clean digits + kanji day names (月火水木金土日), sumi-e vibe
+- [x] **Right screen** → Spotify hero when playing, fallback to calendar → weather → mail when paused
+- [x] **Full-hour animation** → Alternate every hour: kanji brush-stroke (odd hours) ↔ ninja run across all 3 (even hours)
+- [x] **Enclosure** → 3D print (fast iteration, nicer v2 later)
+- [x] **Rotary encoder** → Skip for v1 (touch on all 3 screens is sufficient)
+- [x] **Frame orientation** → All portrait (240×320). Resize strategy TBD at step 3 — try different approaches on real hardware first
 
 ---
 
