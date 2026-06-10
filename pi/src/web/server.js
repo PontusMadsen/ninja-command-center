@@ -625,7 +625,7 @@ export async function startWebServer(state) {
   app.post('/api/restart', (req, res) => {
     res.json({ ok: true, note: 'Restarting...' });
     setTimeout(() => {
-      exec('sudo systemctl restart ninja.service');
+      exec('sudo systemctl restart ninja-hub.service');
     }, 500);
   });
 
@@ -658,7 +658,7 @@ export async function startWebServer(state) {
       }
       res.json({ ok: true, output, restarting: true });
       setTimeout(() => {
-        exec('sudo systemctl restart ninja.service');
+        exec('sudo systemctl restart ninja-hub.service');
       }, 2000);
     });
   });
