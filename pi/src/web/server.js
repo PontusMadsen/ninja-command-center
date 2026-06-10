@@ -791,6 +791,24 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
   };
 
   // --- Combined status for all hub screens ---
+  // --- Nudges ---
+  app.get('/api/nudges/status', (req, res) => {
+    if (!ninjaState.nudges) return res.json({ enabled: false });
+    res.json(ninjaState.nudges.getStatus());
+  });
+
+  app.post('/api/nudges/now', async (req, res) => {
+    if (!ninjaState.nudges) return res.status(503).json({ error: 'nudges not available' });
+    const result = await ninjaState.nudges.nudgeNow(req.body?.category);
+    res.json(result || { error: 'no nudge available' });
+  });
+
+  app.post('/api/nudges/toggle', (req, res) => {
+    if (!ninjaState.nudges) return res.status(503).json({ error: 'nudges not available' });
+    ninjaState.nudges.enabled = !ninjaState.nudges.enabled;
+    res.json({ enabled: ninjaState.nudges.enabled });
+  });
+
   app.get('/api/hub/status', (req, res) => {
     res.json({
       spotify: { connected: spotify.isConnected(), nowPlaying: spotify.getNowPlaying() },

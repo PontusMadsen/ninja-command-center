@@ -35,6 +35,7 @@ import { synthesize } from './tts/voicevox.js';
 import WakeWordListener from './wakeword/index.js';
 import { playStockPhrase, preloadStockPhrases } from './audio/stock-phrases.js';
 import IdleBehaviors from './idle-behaviors.js';
+import NudgeScheduler from './nudges/index.js';
 import { startWebServer } from './web/server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,7 @@ import { hasAngryKeyword, angryReaction, moodFace, wakeWordDetected, thinking, s
 let voiceActive = false;
 let wakeListener = null;
 let idle = null;
+let nudges = null;
 const conversationLog = [];
 
 const MAX_CONVERSATION_TURNS = 5;
@@ -128,6 +130,7 @@ async function handleVoiceTurn() {
     idle.noteInteraction();
     idle.enabled = false;
   }
+  if (nudges) nudges.pause();
 
   try {
     if (wakeListener) wakeListener.stop();
@@ -192,6 +195,7 @@ async function handleVoiceTurn() {
   } finally {
     voiceActive = false;
     if (idle) idle.enabled = true;
+    if (nudges) nudges.resume();
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
     // Restart wake word listener with delay to avoid TTS echo
@@ -230,6 +234,16 @@ async function main() {
   // Start idle behavior loop
   idle.start();
 
+  // Start nudge scheduler
+  nudges = new NudgeScheduler({
+    setFace,
+    playOnce,
+    synthesize,
+    playFile,
+    audioDevice: AUDIO_DEVICE,
+  });
+  nudges.start();
+
   const ninjaState = {
     get currentFace() { return 'idle'; },
     get wakeWordActive() { return wakeListener?.running || false; },
@@ -241,6 +255,7 @@ async function main() {
     startWakeWord: () => wakeListener?.start(),
     stopWakeWord: () => wakeListener?.stop(),
     setThought: null,
+    nudges,
   };
 
   // Start web UI

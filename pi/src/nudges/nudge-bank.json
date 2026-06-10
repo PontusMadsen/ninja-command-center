@@ -1,0 +1,51 @@
+{
+  "hydration": [
+    "Water. Now.",
+    "Drink something.",
+    "When did you last drink water?",
+    "Hydrate or die.",
+    "Water break. Not asking."
+  ],
+  "posture": [
+    "Sit up straight.",
+    "Your back is not your enemy.",
+    "Shoulders. Down. Now.",
+    "Stop slouching.",
+    "Fix your posture. You know."
+  ],
+  "movement": [
+    "Stand up. Walk around.",
+    "Five minutes. Go outside.",
+    "Move your body. It rusts.",
+    "Get up. Stretch. Return.",
+    "You have legs. Use them."
+  ],
+  "eyes": [
+    "Look away from the screen. Twenty seconds.",
+    "Your eyes need a break.",
+    "Blink. Look at something far away.",
+    "Screen break. Look out the window.",
+    "Rest your eyes. They do a lot."
+  ],
+  "break": [
+    "Break. Not optional.",
+    "Step away. The code will wait.",
+    "Take five. Seriously.",
+    "You've earned a break. Take it.",
+    "Pause. Breathe. Come back."
+  ],
+  "time_awareness": [
+    "It's getting late.",
+    "How long have you been here?",
+    "Check the time. Really look at it.",
+    "Time moves. Are you?",
+    "Hours pass. Notice them."
+  ],
+  "encouragement": [
+    "You're doing fine.",
+    "Keep going.",
+    "Almost there. Probably.",
+    "Not bad. For a human.",
+    "Solid work. Don't let it go to your head."
+  ]
+}
