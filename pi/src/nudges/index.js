@@ -33,6 +33,7 @@ export default class NudgeScheduler {
     this.paused = false;
     this.history = [];           // recent nudge categories to avoid repeats
     this.lastNudgeTime = 0;
+    this.lastPerCategory = {};   // track last message per category to avoid repeats
 
     // Configurable intervals (ms)
     this.minInterval = 30 * 60 * 1000;  // 30 min minimum between nudges
@@ -100,7 +101,12 @@ export default class NudgeScheduler {
   pickNudge(category) {
     const messages = this.bank[category];
     if (!messages?.length) return null;
-    return pick(messages);
+    if (messages.length === 1) return messages[0];
+    const last = this.lastPerCategory[category];
+    let choice;
+    do { choice = pick(messages); } while (choice === last);
+    this.lastPerCategory[category] = choice;
+    return choice;
   }
 
   async deliver() {
