@@ -649,7 +649,7 @@ export async function startWebServer(state) {
   });
 
   app.post('/api/update', (req, res) => {
-    exec('cd ' + REPO_ROOT + ' && git checkout -- . && git pull origin main', (err, stdout, stderr) => {
+    exec('cd ' + REPO_ROOT + ' && git checkout -- . && git pull --ff-only origin main', (err, stdout, stderr) => {
       if (err) return res.json({ ok: false, output: stderr });
       const output = stdout.trim();
       logger.info({ output }, 'Git pull');
