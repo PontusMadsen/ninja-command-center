@@ -16,6 +16,10 @@ const TIME_RULES = [
   { category: 'time_awareness', after: 22, before: 6 },
 ];
 
+const SCHEDULED_NUDGES = [
+  { hour: 15, minute: 45, message: "It's time to leave soon, no?", category: 'time_awareness' },
+];
+
 export default class NudgeScheduler {
   constructor({ setFace, playOnce, synthesize, playFile, audioDevice }) {
     this.setFace = setFace;
@@ -38,11 +42,33 @@ export default class NudgeScheduler {
   start() {
     logger.info('Nudge scheduler started');
     this.scheduleNext();
+    this.startScheduledNudges();
   }
 
   stop() {
     if (this.timer) clearTimeout(this.timer);
+    if (this.scheduledTimer) clearInterval(this.scheduledTimer);
     this.timer = null;
+    this.scheduledTimer = null;
+  }
+
+  startScheduledNudges() {
+    this.firedToday = new Set();
+    this.scheduledTimer = setInterval(() => {
+      if (!this.enabled || this.paused) return;
+      const now = new Date();
+      const key = `${now.getHours()}:${now.getMinutes()}`;
+      if (this.firedToday.has(key)) return;
+      for (const sn of SCHEDULED_NUDGES) {
+        if (now.getHours() === sn.hour && now.getMinutes() === sn.minute) {
+          this.firedToday.add(key);
+          this.deliverMessage(sn.message, sn.category);
+          break;
+        }
+      }
+      // Reset fired set at midnight
+      if (now.getHours() === 0 && now.getMinutes() === 0) this.firedToday.clear();
+    }, 30_000);
   }
 
   pause() { this.paused = true; }
@@ -95,21 +121,7 @@ export default class NudgeScheduler {
     this.lastNudgeTime = Date.now();
 
     logger.info({ category, message }, 'Nudge');
-
-    // Face reaction — brief attention-getting face, then speak
-    this.setFace('squint');
-
-    try {
-      const file = await this.synthesize(message);
-      if (file) {
-        this.setFace('talking');
-        await this.playFile(file, this.audioDevice);
-      }
-    } catch (e) {
-      logger.warn({ err: e.message }, 'Nudge TTS failed');
-    }
-
-    this.setFace('idle');
+    await this.deliverMessage(message, category);
     this.scheduleNext();
   }
 
@@ -124,7 +136,11 @@ export default class NudgeScheduler {
     this.lastNudgeTime = Date.now();
 
     logger.info({ category: cat, message }, 'Manual nudge');
+    await this.deliverMessage(message, cat);
+    return { category: cat, message };
+  }
 
+  async deliverMessage(message, category) {
     this.setFace('squint');
     try {
       const file = await this.synthesize(message);
@@ -136,8 +152,6 @@ export default class NudgeScheduler {
       logger.warn({ err: e.message }, 'Nudge TTS failed');
     }
     this.setFace('idle');
-
-    return { category: cat, message };
   }
 
   getStatus() {

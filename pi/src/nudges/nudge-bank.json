@@ -4,7 +4,8 @@
     "Drink something.",
     "When did you last drink water?",
     "Hydrate or die.",
-    "Water break. Not asking."
+    "Water break. Not asking.",
+    "Be water, my friend."
   ],
   "posture": [
     "Sit up straight.",
@@ -32,7 +33,18 @@
     "Step away. The code will wait.",
     "Take five. Seriously.",
     "You've earned a break. Take it.",
-    "Pause. Breathe. Come back."
+    "Pause. Breathe. Come back.",
+    "Please, stand up and go away. Ninja not want to see you for a while."
+  ],
+  "bored": [
+    "Ninja is bored. Are you actually working?",
+    "Hello? Anybody there? Ninja is lonely.",
+    "You are very quiet. Suspicious."
+  ],
+  "chaotic": [
+    "I give you happy poopy time.",
+    "Ninja believes in you. A little.",
+    "You smell okay today. Compliment."
   ],
   "time_awareness": [
     "It's getting late.",
@@ -42,10 +54,23 @@
     "Hours pass. Notice them."
   ],
   "encouragement": [
-    "You're doing fine.",
+    "You got this. You humans are silly, need motivation for everything.",
     "Keep going.",
     "Almost there. Probably.",
     "Not bad. For a human.",
-    "Solid work. Don't let it go to your head."
+    "Solid work. Don't let it go to your head.",
+    "You're doing fine."
+  ],
+  "dark_haiku": [
+    "Autumn moonlight. A worm digs silently into the chestnut.",
+    "The light of a candle. Is transferred to another candle. Spring twilight.",
+    "A crow has settled. On a bare branch. Autumn evening.",
+    "In this world, we walk on the roof of hell, gazing at flowers.",
+    "The temple bell stops. But the sound keeps coming out of the flowers.",
+    "Even in my town, now I see them carrying a coffin. End of autumn.",
+    "Over the wintry forest. Winds howl in rage. With no leaves to blow.",
+    "First autumn morning. The mirror I stare into shows my father's face.",
+    "The old pond. A frog jumps in. Sound of water.",
+    "Everything I touch with tenderness, alas, pricks like a bramble."
   ]
 }
