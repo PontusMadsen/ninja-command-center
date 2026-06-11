@@ -117,6 +117,7 @@ class ILI9341:
         self._cmd(0xE1, [0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31,
                          0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F])  # Negative gamma
 
+        self._cmd(0x21)  # Display inversion ON (needed for red PCB ILI9341 modules)
         self._cmd(0x11)  # Sleep out
         time.sleep(0.12)
         self._cmd(0x29)  # Display on
@@ -161,8 +162,7 @@ def rgb_to_565(img):
     arr = np.array(img, dtype=np.uint16)
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
     rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
-    # ILI9341 expects big-endian
-    return rgb565.astype('>u2').tobytes()
+    return rgb565.astype('<u2').tobytes()
 
 
 # --- Main ---
