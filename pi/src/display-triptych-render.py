@@ -33,50 +33,35 @@ except ImportError:
 DISPLAYS = [
     {   # Screen 0 — Left (Clock)
         'cs': 8, 'dc': 24, 'rst': 25,
-        'spi_bus': 0, 'spi_dev': 0,
     },
     {   # Screen 1 — Middle (Ninja)
         'cs': 7, 'dc': 23, 'rst': 27,
-        'spi_bus': 0, 'spi_dev': 1,
     },
     {   # Screen 2 — Right (Info)
         'cs': 5, 'dc': 22, 'rst': 17,
-        'spi_bus': 0, 'spi_dev': -1,  # manual CS, shares SPI0
     },
 ]
 
 SCREEN_W = 240
 SCREEN_H = 320
-SPI_SPEED = 62_500_000  # 62.5 MHz — ILI9341 max is 10MHz write, but Pi SPI can overdrive safely
+SPI_SPEED = 32_000_000  # 32 MHz — safe for ILI9341 over jumper wires
 
 
 # --- ILI9341 driver ---
 
 class ILI9341:
-    """Minimal ILI9341 driver using spidev + GPIO."""
+    """Minimal ILI9341 driver using spidev + GPIO. All CS managed manually."""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, spi):
         self.dc = cfg['dc']
         self.rst = cfg['rst']
         self.cs = cfg['cs']
-        self.manual_cs = cfg['spi_dev'] == -1
+        self.spi = spi
 
         GPIO.setup(self.dc, GPIO.OUT)
         GPIO.setup(self.rst, GPIO.OUT)
-
-        if self.manual_cs:
-            GPIO.setup(self.cs, GPIO.OUT)
-            GPIO.output(self.cs, GPIO.HIGH)
-            # Share SPI device 0 but toggle CS manually
-            self.spi = spidev.SpiDev()
-            self.spi.open(cfg['spi_bus'], 0)
-        else:
-            self.spi = spidev.SpiDev()
-            self.spi.open(cfg['spi_bus'], cfg['spi_dev'])
-
-        self.spi.max_speed_hz = SPI_SPEED
-        self.spi.mode = 0
-        self.spi.no_cs = self.manual_cs
+        GPIO.setup(self.cs, GPIO.OUT)
+        GPIO.output(self.cs, GPIO.HIGH)
 
         self._reset()
         self._init_display()
@@ -90,15 +75,13 @@ class ILI9341:
         time.sleep(0.15)
 
     def _cmd(self, cmd, data=None):
-        if self.manual_cs:
-            GPIO.output(self.cs, GPIO.LOW)
+        GPIO.output(self.cs, GPIO.LOW)
         GPIO.output(self.dc, GPIO.LOW)
         self.spi.writebytes([cmd])
         if data:
             GPIO.output(self.dc, GPIO.HIGH)
             self.spi.writebytes(list(data))
-        if self.manual_cs:
-            GPIO.output(self.cs, GPIO.HIGH)
+        GPIO.output(self.cs, GPIO.HIGH)
 
     def _init_display(self):
         self._cmd(0x01)  # Software reset
@@ -110,7 +93,6 @@ class ILI9341:
         self._cmd(0x3A, [0x55])
 
         # Memory access control: portrait, top-left origin
-        # Row/col exchange depends on how display is mounted
         self._cmd(0x36, [0x48])
 
         # Display on
@@ -125,8 +107,7 @@ class ILI9341:
         """Write raw RGB565 bytes to display RAM."""
         self.set_window(0, 0, SCREEN_W - 1, SCREEN_H - 1)
 
-        if self.manual_cs:
-            GPIO.output(self.cs, GPIO.LOW)
+        GPIO.output(self.cs, GPIO.LOW)
         GPIO.output(self.dc, GPIO.LOW)
         self.spi.writebytes([0x2C])  # Memory write command
         GPIO.output(self.dc, GPIO.HIGH)
@@ -137,8 +118,7 @@ class ILI9341:
         for i in range(0, len(data), CHUNK):
             self.spi.writebytes2(mv[i:i + CHUNK])
 
-        if self.manual_cs:
-            GPIO.output(self.cs, GPIO.HIGH)
+        GPIO.output(self.cs, GPIO.HIGH)
 
     def clear(self):
         black = b'\x00\x00' * (SCREEN_W * SCREEN_H)
@@ -168,7 +148,15 @@ def main():
     if HAS_HW:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        screens = [ILI9341(cfg) for cfg in DISPLAYS]
+
+        # Single shared SPI bus — all CS toggled manually via GPIO
+        spi = spidev.SpiDev()
+        spi.open(0, 0)
+        spi.max_speed_hz = SPI_SPEED
+        spi.mode = 0
+        spi.no_cs = True
+
+        screens = [ILI9341(cfg, spi) for cfg in DISPLAYS]
         for s in screens:
             s.clear()
     else:
