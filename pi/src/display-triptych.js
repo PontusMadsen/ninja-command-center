@@ -43,7 +43,7 @@ let sending = false;
 let playingOnce = false;
 let pendingFace = null;
 
-const FRAME_DELAY_MS = 60;
+const FRAME_DELAY_MS = 30;
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -108,11 +108,15 @@ async function tickLoop() {
 }
 
 function startLoop(animName) {
+  const prev = currentAnim();
   stopLoop();
   const frames = loadFrames(animName);
   if (frames.length === 0) {
     logger.warn({ animName }, 'No frames found');
     return;
+  }
+  if (prev && prev !== animName) {
+    logger.debug({ from: prev, to: animName, frames: frames.length }, 'Face change');
   }
   loopFrames = frames;
   loopIdx = 0;
