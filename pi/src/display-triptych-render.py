@@ -16,9 +16,10 @@ import json
 import os
 import sys
 import time
+from datetime import datetime
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 SCREEN_W = 240
 SCREEN_H = 320
@@ -128,6 +129,70 @@ def rgb_to_565_le(img):
     return rgb565.astype('<u2').tobytes()
 
 
+# --- Clock renderer ---
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
+
+# Pre-load fonts
+try:
+    FONT_BIG = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 64)
+    FONT_MED = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
+    FONT_SMALL = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 20)
+    FONT_LABEL = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 16)
+except Exception:
+    FONT_BIG = ImageFont.load_default()
+    FONT_MED = FONT_BIG
+    FONT_SMALL = FONT_BIG
+    FONT_LABEL = FONT_BIG
+
+
+def render_clock(local_tz_name, remote_tz_name, remote_label):
+    """Generate a 240×320 clock screen image."""
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    local_tz = ZoneInfo(local_tz_name)
+    remote_tz = ZoneInfo(remote_tz_name)
+    now = datetime.now(local_tz)
+    remote_now = datetime.now(remote_tz)
+
+    # Local time — big
+    time_str = now.strftime('%H:%M')
+    bbox = draw.textbbox((0, 0), time_str, font=FONT_BIG)
+    tw = bbox[2] - bbox[0]
+    x = (SCREEN_W - tw) // 2
+    draw.text((x, 60), time_str, fill=(255, 255, 255), font=FONT_BIG)
+
+    # Seconds — smaller, next to time
+    sec_str = now.strftime(':%S')
+    draw.text((x + tw + 2, 85), sec_str, fill=(120, 120, 120), font=FONT_SMALL)
+
+    # Date
+    date_str = now.strftime('%a %d %b')
+    bbox = draw.textbbox((0, 0), date_str, font=FONT_MED)
+    tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, 140), date_str, fill=(180, 180, 180), font=FONT_MED)
+
+    # Divider line
+    draw.line([(40, 200), (SCREEN_W - 40, 200)], fill=(60, 60, 60), width=1)
+
+    # Remote time
+    remote_time_str = remote_now.strftime('%H:%M')
+    bbox = draw.textbbox((0, 0), remote_time_str, font=FONT_MED)
+    tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, 225), remote_time_str, fill=(100, 160, 255), font=FONT_MED)
+
+    # Remote label
+    bbox = draw.textbbox((0, 0), remote_label, font=FONT_LABEL)
+    tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, 265), remote_label, fill=(80, 80, 80), font=FONT_LABEL)
+
+    return canvas
+
+
 # --- Main ---
 
 def main():
@@ -167,20 +232,30 @@ def main():
 
         path = cmd.get('path', '')
         screen = cmd.get('screen', 1)
+        cmd_type = cmd.get('type', 'image')
 
         try:
-            img = Image.open(path).convert('RGB')
-
-            if screen == 'all':
-                img = img.resize((720, 320))
-                for i in range(3):
-                    crop = img.crop((i * 240, 0, (i + 1) * 240, 320))
-                    screens[i].push_frame(converters[i](crop))
-            else:
+            if cmd_type == 'clock':
+                img = render_clock(
+                    cmd.get('local_tz', 'Asia/Tokyo'),
+                    cmd.get('remote_tz', 'Europe/Stockholm'),
+                    cmd.get('remote_label', 'Sweden'),
+                )
                 idx = int(screen)
                 if 0 <= idx < len(screens):
-                    img = img.resize((SCREEN_W, SCREEN_H))
                     screens[idx].push_frame(converters[idx](img))
+            elif path:
+                img = Image.open(path).convert('RGB')
+                if screen == 'all':
+                    img = img.resize((720, 320))
+                    for i in range(3):
+                        crop = img.crop((i * 240, 0, (i + 1) * 240, 320))
+                        screens[i].push_frame(converters[i](crop))
+                else:
+                    idx = int(screen)
+                    if 0 <= idx < len(screens):
+                        img = img.resize((SCREEN_W, SCREEN_H))
+                        screens[idx].push_frame(converters[idx](img))
 
         except Exception as e:
             sys.stderr.write(f'render error: {e}\n')

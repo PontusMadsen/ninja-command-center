@@ -27,6 +27,7 @@ if (DISPLAY_MODE === 'none') {
 }
 const { init: displayInit, setFace, playOnce, close: displayClose } = displayMod;
 const buzz = displayMod.buzz || (() => {});
+const sendCommand = displayMod.sendCommand || null;
 
 // Voice pipeline imports
 import { recordAudio } from './audio/record.js';
@@ -235,6 +236,13 @@ async function main() {
 
   // Start idle behavior loop
   idle.start();
+
+  // Start clock on left screen (triptych only)
+  if (sendCommand) {
+    const { default: ClockScreen } = await import('./screens/clock.js');
+    const clock = new ClockScreen({ sendCommand, screen: 0 });
+    clock.start();
+  }
 
   // Start nudge scheduler
   nudges = new NudgeScheduler({

@@ -236,3 +236,8 @@ export function sendToScreen(screen, imagePath) {
 export function sendToAll(imagePath) {
   return sendCommand({ screen: 'all', path: imagePath });
 }
+
+/**
+ * Send a raw command to the renderer (for screen modules like clock).
+ */
+export { sendCommand };
