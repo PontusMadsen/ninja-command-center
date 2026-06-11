@@ -93,7 +93,9 @@ class ILI9341:
         self._cmd(0x3A, [0x55])
 
         # Memory access control: portrait, top-left origin
-        self._cmd(0x36, [0x48])
+        # 0x48=normal, 0x88=180°. Flip if displays are mounted upside-down.
+        madctl = int(os.environ.get('ILI9341_MADCTL', '0x88'), 16)
+        self._cmd(0x36, [madctl])
 
         # Display on
         self._cmd(0x29)
