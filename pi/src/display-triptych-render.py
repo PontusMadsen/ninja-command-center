@@ -159,16 +159,11 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     now = datetime.now(local_tz)
     remote_now = datetime.now(remote_tz)
 
-    # Local time — big
+    # Local time — big, centered
     time_str = now.strftime('%H:%M')
     bbox = draw.textbbox((0, 0), time_str, font=FONT_BIG)
     tw = bbox[2] - bbox[0]
-    x = (SCREEN_W - tw) // 2
-    draw.text((x, 60), time_str, fill=(255, 255, 255), font=FONT_BIG)
-
-    # Seconds — smaller, next to time
-    sec_str = now.strftime(':%S')
-    draw.text((x + tw + 2, 85), sec_str, fill=(120, 120, 120), font=FONT_SMALL)
+    draw.text(((SCREEN_W - tw) // 2, 60), time_str, fill=(255, 255, 255), font=FONT_BIG)
 
     # Date
     date_str = now.strftime('%a %d %b')
