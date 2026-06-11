@@ -82,28 +82,20 @@ export default class IdleBehaviors {
       return;
     }
 
-    // Phase 1: active idle — mix of quick faces and fun playOnce animations
+    // Phase 1: active idle — play random animations
     // 40% chance of doing nothing
     if (Math.random() > 0.6) {
       this.scheduleNext();
       return;
     }
 
-    // 50% fun animation (playOnce), 50% quick face
-    if (Math.random() > 0.5 && this.playOnce) {
-      const anim = FUN_ANIMS[Math.floor(Math.random() * FUN_ANIMS.length)];
-      logger.debug({ behavior: anim }, 'Fun animation');
+    // Pick from fun anims or quick faces, always playOnce
+    const allAnims = [...FUN_ANIMS, ...QUICK_FACES.map(f => f.state)];
+    const anim = allAnims[Math.floor(Math.random() * allAnims.length)];
+    logger.debug({ behavior: anim }, 'Idle animation');
+    if (this.playOnce) {
       await this.playOnce(anim);
       this.setFace('idle');
-    } else {
-      const b = QUICK_FACES[Math.floor(Math.random() * QUICK_FACES.length)];
-      logger.debug({ behavior: b.state }, 'Idle behavior');
-      this.setFace(b.state);
-      setTimeout(() => {
-        if (!this.sleeping && !this.sleepy) {
-          this.setFace('idle');
-        }
-      }, b.duration);
     }
 
     this.scheduleNext();
