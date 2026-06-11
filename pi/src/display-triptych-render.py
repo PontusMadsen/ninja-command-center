@@ -1,24 +1,29 @@
 #!/usr/bin/env python3
-"""Triptych renderer — drives 3× ILI9341 SPI displays from stdin commands.
+"""Triptych renderer — drives 3× ILI9341 displays from stdin commands.
+
+Display 1 (left)   — SPI4 via spidev, DC=GPIO24
+Display 2 (middle) — SPI0 via /dev/fb0 (DRM mipi-dbi)
+Display 3 (right)  — SPI5 via spidev, DC=GPIO22
 
 Protocol (stdin, one JSON line per command):
-  {"screen": 0, "path": "/path/to/frame.jpg"}   — render image to screen 0/1/2
-  {"screen": "all", "path": "/path/to/wide.jpg"} — render 720×320 across all 3
+  {"screen": 0, "path": "/path/to/frame.jpg"}   — render to screen 0/1/2
+  {"screen": "all", "path": "/path/to/wide.jpg"} — 720×320 across all 3
 
-Acks each command with 'K\n' on stdout after the frame is pushed.
-
-Screens: 0=left (240×320), 1=middle (240×320), 2=right (240×320)
-All displays are ILI9341, portrait orientation, SPI0.
+Acks each command with 'K\n' on stdout.
 """
 
 import json
 import os
 import sys
 import time
-import threading
 
 import numpy as np
 from PIL import Image
+
+SCREEN_W = 240
+SCREEN_H = 320
+
+# --- SPI display (for left + right) ---
 
 try:
     import spidev
@@ -26,143 +31,101 @@ try:
     HAS_HW = True
 except ImportError:
     HAS_HW = False
-    sys.stderr.write('spidev/RPi.GPIO not available — running in stub mode\n')
+    sys.stderr.write('spidev/GPIO not available — stub mode\n')
     sys.stderr.flush()
 
-# --- Pin assignments per display ---
-DISPLAYS = [
-    {   # Screen 0 — Left (Clock)
-        'cs': 8, 'dc': 24, 'rst': 25,
-    },
-    {   # Screen 1 — Middle (Ninja)
-        'cs': 7, 'dc': 23, 'rst': 27,
-    },
-    {   # Screen 2 — Right (Info)
-        'cs': 5, 'dc': 22, 'rst': 17,
-    },
-]
 
-SCREEN_W = 240
-SCREEN_H = 320
-SPI_SPEED = 8_000_000  # 8 MHz — conservative for jumper wires, increase once stable
+class ILI9341_SPI:
+    """ILI9341 driven via spidev with manual DC pin."""
 
+    def __init__(self, spi_bus, spi_dev, dc_pin, speed=32_000_000):
+        self.dc_pin = dc_pin
+        GPIO.setup(dc_pin, GPIO.OUT)
 
-# --- ILI9341 driver ---
+        self.spi = spidev.SpiDev()
+        self.spi.open(spi_bus, spi_dev)
+        self.spi.max_speed_hz = speed
+        self.spi.mode = 0
 
-class ILI9341:
-    """Minimal ILI9341 driver using spidev + GPIO. All CS managed manually."""
-
-    def __init__(self, cfg, spi):
-        self.dc = cfg['dc']
-        self.rst = cfg['rst']
-        self.cs = cfg['cs']
-        self.spi = spi
-
-        GPIO.setup(self.dc, GPIO.OUT)
-        GPIO.setup(self.rst, GPIO.OUT)
-        GPIO.setup(self.cs, GPIO.OUT)
-        GPIO.output(self.cs, GPIO.HIGH)
-
-        self._reset()
         self._init_display()
 
-    def _reset(self):
-        GPIO.output(self.rst, GPIO.HIGH)
-        time.sleep(0.01)
-        GPIO.output(self.rst, GPIO.LOW)
-        time.sleep(0.02)
-        GPIO.output(self.rst, GPIO.HIGH)
-        time.sleep(0.15)
-
     def _cmd(self, cmd, data=None):
-        GPIO.output(self.cs, GPIO.LOW)
-        GPIO.output(self.dc, GPIO.LOW)
+        GPIO.output(self.dc_pin, GPIO.LOW)
         self.spi.writebytes2([cmd])
         if data:
-            GPIO.output(self.dc, GPIO.HIGH)
+            GPIO.output(self.dc_pin, GPIO.HIGH)
             self.spi.writebytes2(data)
-        GPIO.output(self.cs, GPIO.HIGH)
 
     def _init_display(self):
-        self._cmd(0x01)  # Software reset
-        time.sleep(0.15)
-        self._cmd(0x11)  # Sleep out
-        time.sleep(0.5)
+        self._cmd(0x01); time.sleep(0.15)  # Software reset
+        self._cmd(0x11); time.sleep(0.5)   # Sleep out
+        self._cmd(0xCF, [0x00, 0xC1, 0x30])
+        self._cmd(0xED, [0x64, 0x03, 0x12, 0x81])
+        self._cmd(0xE8, [0x85, 0x00, 0x78])
+        self._cmd(0xCB, [0x39, 0x2C, 0x00, 0x34, 0x02])
+        self._cmd(0xF7, [0x20])
+        self._cmd(0xEA, [0x00, 0x00])
+        self._cmd(0xC0, [0x23])
+        self._cmd(0xC1, [0x10])
+        self._cmd(0xC5, [0x3E, 0x28])
+        self._cmd(0xC7, [0x86])
+        self._cmd(0x36, [0x88])   # MADCTL 180°
+        self._cmd(0x3A, [0x55])   # 16-bit RGB565
+        self._cmd(0xB1, [0x00, 0x18])
+        self._cmd(0xB6, [0x08, 0x82, 0x27])
+        self._cmd(0x29); time.sleep(0.05)  # Display on
 
-        # Full ILI9341 init sequence
-        self._cmd(0xEF, [0x03, 0x80, 0x02])
-        self._cmd(0xCF, [0x00, 0xC1, 0x30])           # Power control B
-        self._cmd(0xED, [0x64, 0x03, 0x12, 0x81])      # Power on sequence
-        self._cmd(0xE8, [0x85, 0x00, 0x78])             # Driver timing A
-        self._cmd(0xCB, [0x39, 0x2C, 0x00, 0x34, 0x02]) # Power control A
-        self._cmd(0xF7, [0x20])                          # Pump ratio
-        self._cmd(0xEA, [0x00, 0x00])                    # Driver timing B
-        self._cmd(0xC0, [0x23])                          # Power control 1
-        self._cmd(0xC1, [0x10])                          # Power control 2
-        self._cmd(0xC5, [0x3E, 0x28])                    # VCOM control 1
-        self._cmd(0xC7, [0x86])                          # VCOM control 2
-
-        # Memory access control: portrait orientation
-        # 0x48=normal portrait, 0x88=180° portrait
-        madctl = int(os.environ.get('ILI9341_MADCTL', '0x48'), 16)
-        self._cmd(0x36, [madctl])
-
-        self._cmd(0x3A, [0x55])  # Pixel format: 16-bit RGB565
-        self._cmd(0xB1, [0x00, 0x18])  # Frame rate: 79Hz
-        self._cmd(0xB6, [0x08, 0x82, 0x27])  # Display function
-        self._cmd(0xF2, [0x00])  # 3Gamma off
-        self._cmd(0x26, [0x01])  # Gamma curve 1
-        self._cmd(0xE0, [0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E,
-                         0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00])  # Positive gamma
-        self._cmd(0xE1, [0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31,
-                         0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F])  # Negative gamma
-
-        self._cmd(0x21)  # Display inversion ON (needed for red PCB ILI9341 modules)
-        self._cmd(0x11)  # Sleep out
-        time.sleep(0.12)
-        self._cmd(0x29)  # Display on
-        time.sleep(0.05)
-
-    def set_window(self, x0, y0, x1, y1):
-        self._cmd(0x2A, [x0 >> 8, x0 & 0xFF, x1 >> 8, x1 & 0xFF])  # Column
-        self._cmd(0x2B, [y0 >> 8, y0 & 0xFF, y1 >> 8, y1 & 0xFF])  # Row
-
-    def push_pixels(self, data):
-        """Write raw RGB565 bytes to display RAM."""
-        self.set_window(0, 0, SCREEN_W - 1, SCREEN_H - 1)
-
-        GPIO.output(self.cs, GPIO.LOW)
-        GPIO.output(self.dc, GPIO.LOW)
-        self.spi.writebytes2([0x2C])  # Memory write command
-        GPIO.output(self.dc, GPIO.HIGH)
-
-        # Send in chunks — use bytes slices, not memoryview
-        CHUNK = 4096
-        buf = bytes(data)
-        for i in range(0, len(buf), CHUNK):
-            self.spi.writebytes2(buf[i:i + CHUNK])
-
-        GPIO.output(self.cs, GPIO.HIGH)
+    def push_frame(self, data):
+        """Push 240×320 RGB565 big-endian frame data."""
+        self._cmd(0x2A, [0x00, 0x00, 0x00, 0xEF])
+        self._cmd(0x2B, [0x00, 0x00, 0x01, 0x3F])
+        GPIO.output(self.dc_pin, GPIO.LOW)
+        self.spi.writebytes2([0x2C])
+        GPIO.output(self.dc_pin, GPIO.HIGH)
+        self.spi.writebytes2(data)
 
     def clear(self):
-        black = b'\x00\x00' * (SCREEN_W * SCREEN_H)
-        self.push_pixels(black)
+        self.push_frame(b'\x00\x00' * (SCREEN_W * SCREEN_H))
+
+
+class ILI9341_FB:
+    """ILI9341 driven via /dev/fb0 (DRM mipi-dbi kernel driver)."""
+
+    def __init__(self, fb_dev='/dev/fb0'):
+        self.fb_dev = fb_dev
+        self.fb = open(fb_dev, 'r+b')
+
+    def push_frame(self, data):
+        """Push 240×320 RGB565 little-endian frame data."""
+        self.fb.seek(0)
+        self.fb.write(data)
+        self.fb.flush()
+
+    def clear(self):
+        self.push_frame(b'\x00\x00' * (SCREEN_W * SCREEN_H))
 
 
 class StubDisplay:
-    """No-op display for development without hardware."""
-    def push_pixels(self, data): pass
+    def push_frame(self, data): pass
     def clear(self): pass
 
 
 # --- Image conversion ---
 
-def rgb_to_565(img):
-    """Convert PIL RGB image to big-endian RGB565 bytes for ILI9341."""
+def rgb_to_565_be(img):
+    """Convert PIL RGB image to big-endian RGB565 (for SPI displays)."""
     arr = np.array(img, dtype=np.uint16)
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
     rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
     return rgb565.astype('>u2').tobytes()
+
+
+def rgb_to_565_le(img):
+    """Convert PIL RGB image to little-endian RGB565 (for framebuffer)."""
+    arr = np.array(img, dtype=np.uint16)
+    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+    rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+    return rgb565.astype('<u2').tobytes()
 
 
 # --- Main ---
@@ -172,18 +135,18 @@ def main():
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
-        # Single shared SPI bus — all CS toggled manually via GPIO
-        spi = spidev.SpiDev()
-        spi.open(0, 0)
-        spi.max_speed_hz = SPI_SPEED
-        spi.mode = 0
-        spi.no_cs = True
-
-        screens = [ILI9341(cfg, spi) for cfg in DISPLAYS]
+        screens = [
+            ILI9341_SPI(spi_bus=4, spi_dev=0, dc_pin=24),  # 0: left
+            ILI9341_FB('/dev/fb0'),                          # 1: middle
+            ILI9341_SPI(spi_bus=5, spi_dev=0, dc_pin=22),  # 2: right
+        ]
         for s in screens:
             s.clear()
     else:
-        screens = [StubDisplay() for _ in DISPLAYS]
+        screens = [StubDisplay() for _ in range(3)]
+
+    # Converters per screen (SPI=big-endian, FB=little-endian)
+    converters = [rgb_to_565_be, rgb_to_565_le, rgb_to_565_be]
 
     sys.stderr.write(f'triptych-render: {len(screens)} displays ready\n')
     sys.stderr.flush()
@@ -209,22 +172,18 @@ def main():
             img = Image.open(path).convert('RGB')
 
             if screen == 'all':
-                # Wide image: 720×320, slice into 3
                 img = img.resize((720, 320))
                 for i in range(3):
                     crop = img.crop((i * 240, 0, (i + 1) * 240, 320))
-                    data = rgb_to_565(crop)
-                    screens[i].push_pixels(data)
+                    screens[i].push_frame(converters[i](crop))
             else:
                 idx = int(screen)
                 if 0 <= idx < len(screens):
-                    # Rotate landscape frames (320×240) to portrait (240×320)
                     w, h = img.size
                     if w > h:
-                        img = img.rotate(90, expand=True)
+                        img = img.transpose(Image.ROTATE_90)
                     img = img.resize((SCREEN_W, SCREEN_H))
-                    data = rgb_to_565(img)
-                    screens[idx].push_pixels(data)
+                    screens[idx].push_frame(converters[idx](img))
 
         except Exception as e:
             sys.stderr.write(f'render error: {e}\n')
