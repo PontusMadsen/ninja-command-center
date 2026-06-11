@@ -20,8 +20,8 @@ import time
 import numpy as np
 from PIL import Image
 
-SCREEN_W = 320
-SCREEN_H = 240
+SCREEN_W = 240
+SCREEN_H = 320
 
 # --- SPI display (for left + right) ---
 
@@ -69,7 +69,7 @@ class ILI9341_SPI:
         self._cmd(0xC1, [0x10])
         self._cmd(0xC5, [0x3E, 0x28])
         self._cmd(0xC7, [0x86])
-        self._cmd(0x36, [0xA8])   # MADCTL landscape (0x88 portrait + MV)
+        self._cmd(0x36, [0x88])   # MADCTL portrait 180°
         self._cmd(0x3A, [0x55])   # 16-bit RGB565
         self._cmd(0xB1, [0x00, 0x18])
         self._cmd(0xB6, [0x08, 0x82, 0x27])
@@ -77,8 +77,8 @@ class ILI9341_SPI:
 
     def push_frame(self, data):
         """Push 320×240 RGB565 big-endian frame data."""
-        self._cmd(0x2A, [0x00, 0x00, 0x01, 0x3F])  # cols 0-319
-        self._cmd(0x2B, [0x00, 0x00, 0x00, 0xEF])  # rows 0-239
+        self._cmd(0x2A, [0x00, 0x00, 0x00, 0xEF])  # cols 0-239
+        self._cmd(0x2B, [0x00, 0x00, 0x01, 0x3F])  # rows 0-319
         GPIO.output(self.dc_pin, GPIO.LOW)
         self.spi.writebytes2([0x2C])
         GPIO.output(self.dc_pin, GPIO.HIGH)
@@ -179,6 +179,9 @@ def main():
             else:
                 idx = int(screen)
                 if 0 <= idx < len(screens):
+                    w, h = img.size
+                    if w > h:
+                        img = img.transpose(Image.ROTATE_90)
                     img = img.resize((SCREEN_W, SCREEN_H))
                     screens[idx].push_frame(converters[idx](img))
 
