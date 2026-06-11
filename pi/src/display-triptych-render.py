@@ -77,10 +77,10 @@ class ILI9341:
     def _cmd(self, cmd, data=None):
         GPIO.output(self.cs, GPIO.LOW)
         GPIO.output(self.dc, GPIO.LOW)
-        self.spi.writebytes([cmd])
+        self.spi.writebytes2([cmd])
         if data:
             GPIO.output(self.dc, GPIO.HIGH)
-            self.spi.writebytes(list(data))
+            self.spi.writebytes2(data)
         GPIO.output(self.cs, GPIO.HIGH)
 
     def _init_display(self):
@@ -133,14 +133,14 @@ class ILI9341:
 
         GPIO.output(self.cs, GPIO.LOW)
         GPIO.output(self.dc, GPIO.LOW)
-        self.spi.writebytes([0x2C])  # Memory write command
+        self.spi.writebytes2([0x2C])  # Memory write command
         GPIO.output(self.dc, GPIO.HIGH)
 
-        # SPI transfer in chunks (spidev has a ~4096 byte limit)
+        # Send in chunks — use bytes slices, not memoryview
         CHUNK = 4096
-        mv = memoryview(data)
-        for i in range(0, len(data), CHUNK):
-            self.spi.writebytes2(mv[i:i + CHUNK])
+        buf = bytes(data)
+        for i in range(0, len(buf), CHUNK):
+            self.spi.writebytes2(buf[i:i + CHUNK])
 
         GPIO.output(self.cs, GPIO.HIGH)
 
@@ -162,7 +162,7 @@ def rgb_to_565(img):
     arr = np.array(img, dtype=np.uint16)
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
     rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
-    return rgb565.astype('<u2').tobytes()
+    return rgb565.astype('>u2').tobytes()
 
 
 # --- Main ---
