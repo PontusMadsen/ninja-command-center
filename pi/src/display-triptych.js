@@ -158,6 +158,7 @@ export function setFace(state, opts) {
 
   if (playingOnce && !force) {
     pendingFace = animName;
+    logger.debug({ state, queued: true }, 'setFace during playOnce');
     return;
   }
 
@@ -165,6 +166,7 @@ export function setFace(state, opts) {
     playingOnce = false;
   }
 
+  logger.debug({ state, animName, current: currentAnim() }, 'setFace starting loop');
   if (animName !== currentAnim() || force) {
     startLoop(animName);
   }
@@ -190,6 +192,7 @@ export function playOnce(animName) {
     }
 
     playingOnce = false;
+    logger.debug({ animName, pendingFace }, 'playOnce finished');
 
     if (pendingFace) {
       const face = pendingFace;
