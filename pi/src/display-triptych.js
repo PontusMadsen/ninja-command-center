@@ -43,7 +43,7 @@ let sending = false;
 let playingOnce = false;
 let pendingFace = null;
 
-const FRAME_DELAY_MS = 30;
+const FRAME_DELAY_MS = 80;
 
 // ── helpers ──────────────────────────────────────────────────────────
 
