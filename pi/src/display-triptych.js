@@ -110,6 +110,7 @@ async function tickLoop() {
 function startLoop(animName) {
   const prev = currentAnim();
   stopLoop();
+  sending = false;
   const frames = loadFrames(animName);
   if (frames.length === 0) {
     logger.warn({ animName }, 'No frames found');
