@@ -190,6 +190,87 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     return canvas
 
 
+# --- Spotify renderer ---
+
+import urllib.request
+import io
+import hashlib
+
+_art_cache = {}  # url → PIL Image
+
+def fetch_album_art(url):
+    """Fetch and cache album art."""
+    if not url:
+        return None
+    if url in _art_cache:
+        return _art_cache[url]
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'NinjaCommandCenter/1.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            img = Image.open(io.BytesIO(resp.read())).convert('RGB')
+            _art_cache[url] = img
+            # Keep cache small
+            if len(_art_cache) > 10:
+                oldest = next(iter(_art_cache))
+                del _art_cache[oldest]
+            return img
+    except Exception:
+        return None
+
+
+def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
+    """Generate a 240×320 Spotify now-playing screen."""
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    # Album art — centered at top, 160×160
+    art = fetch_album_art(album_art_url)
+    if art:
+        art_size = 160
+        art_resized = art.resize((art_size, art_size))
+        x = (SCREEN_W - art_size) // 2
+        canvas.paste(art_resized, (x, 20))
+
+    # Track name
+    y = 195
+    track_text = track or ''
+    if len(track_text) > 20:
+        track_text = track_text[:19] + '.'
+    bbox = draw.textbbox((0, 0), track_text, font=FONT_SMALL)
+    tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, y), track_text, fill=(255, 255, 255), font=FONT_SMALL)
+
+    # Artist
+    y = 220
+    artist_text = artist or ''
+    if len(artist_text) > 24:
+        artist_text = artist_text[:23] + '.'
+    bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
+    tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, y), artist_text, fill=(120, 120, 120), font=FONT_LABEL)
+
+    # Progress bar
+    if duration_ms and duration_ms > 0:
+        progress = min(progress_ms / duration_ms, 1.0)
+        bar_y = 250
+        bar_w = SCREEN_W - 40
+        bar_x = 20
+        bar_h = 4
+        # Background
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(40, 40, 40))
+        # Progress
+        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=(30, 215, 96))
+
+        # Time labels
+        elapsed = f'{progress_ms // 60000}:{(progress_ms // 1000) % 60:02d}'
+        total = f'{duration_ms // 60000}:{(duration_ms // 1000) % 60:02d}'
+        draw.text((bar_x, bar_y + 10), elapsed, fill=(80, 80, 80), font=FONT_LABEL)
+        bbox = draw.textbbox((0, 0), total, font=FONT_LABEL)
+        draw.text((bar_x + bar_w - (bbox[2] - bbox[0]), bar_y + 10), total, fill=(80, 80, 80), font=FONT_LABEL)
+
+    return canvas
+
+
 # --- Main ---
 
 def main():
@@ -232,7 +313,20 @@ def main():
         cmd_type = cmd.get('type', 'image')
 
         try:
-            if cmd_type == 'clock':
+            if cmd_type == 'spotify':
+                img = render_spotify(
+                    cmd.get('track', ''),
+                    cmd.get('artist', ''),
+                    cmd.get('album', ''),
+                    cmd.get('album_art_url', ''),
+                    cmd.get('progress_ms', 0),
+                    cmd.get('duration_ms', 0),
+                    cmd.get('track_id', ''),
+                )
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    screens[idx].push_frame(converters[idx](img))
+            elif cmd_type == 'clock':
                 img = render_clock(
                     cmd.get('local_tz', 'Asia/Tokyo'),
                     cmd.get('remote_tz', 'Europe/Stockholm'),

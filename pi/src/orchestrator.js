@@ -237,11 +237,16 @@ async function main() {
   // Start idle behavior loop
   idle.start();
 
-  // Start clock on left screen (triptych only)
+  // Start screen modules (triptych only)
   if (sendCommand) {
     const { default: ClockScreen } = await import('./screens/clock.js');
     const clock = new ClockScreen({ sendCommand, screen: 0 });
     clock.start();
+
+    const { getNowPlaying } = await import('./integrations/spotify.js');
+    const { default: SpotifyScreen } = await import('./screens/spotify.js');
+    const spotify = new SpotifyScreen({ sendCommand, screen: 2, getNowPlaying });
+    spotify.start();
   }
 
   // Start nudge scheduler
