@@ -223,16 +223,14 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
     draw = ImageDraw.Draw(canvas)
 
-    # Album art — centered at top, 160×160
+    # Album art — full width, crisp
     art = fetch_album_art(album_art_url)
     if art:
-        art_size = 160
-        art_resized = art.resize((art_size, art_size))
-        x = (SCREEN_W - art_size) // 2
-        canvas.paste(art_resized, (x, 20))
+        art_resized = art.resize((SCREEN_W, SCREEN_W), Image.NEAREST)
+        canvas.paste(art_resized, (0, 0))
 
     # Track name
-    y = 195
+    y = SCREEN_W + 10
     track_text = track or ''
     if len(track_text) > 20:
         track_text = track_text[:19] + '.'
@@ -241,7 +239,7 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     draw.text(((SCREEN_W - tw) // 2, y), track_text, fill=(255, 255, 255), font=FONT_SMALL)
 
     # Artist
-    y = 220
+    y = SCREEN_W + 35
     artist_text = artist or ''
     if len(artist_text) > 24:
         artist_text = artist_text[:23] + '.'
@@ -249,24 +247,15 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     tw = bbox[2] - bbox[0]
     draw.text(((SCREEN_W - tw) // 2, y), artist_text, fill=(120, 120, 120), font=FONT_LABEL)
 
-    # Progress bar
+    # Progress bar — no time labels, double height
     if duration_ms and duration_ms > 0:
         progress = min(progress_ms / duration_ms, 1.0)
-        bar_y = 250
+        bar_y = SCREEN_W + 60
         bar_w = SCREEN_W - 40
         bar_x = 20
-        bar_h = 4
-        # Background
+        bar_h = 8
         draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(40, 40, 40))
-        # Progress
         draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=(30, 215, 96))
-
-        # Time labels
-        elapsed = f'{progress_ms // 60000}:{(progress_ms // 1000) % 60:02d}'
-        total = f'{duration_ms // 60000}:{(duration_ms // 1000) % 60:02d}'
-        draw.text((bar_x, bar_y + 10), elapsed, fill=(80, 80, 80), font=FONT_LABEL)
-        bbox = draw.textbbox((0, 0), total, font=FONT_LABEL)
-        draw.text((bar_x + bar_w - (bbox[2] - bbox[0]), bar_y + 10), total, fill=(80, 80, 80), font=FONT_LABEL)
 
     return canvas
 
