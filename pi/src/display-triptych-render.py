@@ -179,8 +179,16 @@ def main():
             else:
                 idx = int(screen)
                 if 0 <= idx < len(screens):
-                    img = img.resize((SCREEN_W, SCREEN_H))
-                    screens[idx].push_frame(converters[idx](img))
+                    # Fit to width, maintain aspect ratio, center vertically
+                    w, h = img.size
+                    scale = SCREEN_W / w
+                    new_h = int(h * scale)
+                    img = img.resize((SCREEN_W, new_h))
+                    # Center on black canvas
+                    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+                    y_offset = (SCREEN_H - new_h) // 2
+                    canvas.paste(img, (0, y_offset))
+                    screens[idx].push_frame(converters[idx](canvas))
 
         except Exception as e:
             sys.stderr.write(f'render error: {e}\n')
