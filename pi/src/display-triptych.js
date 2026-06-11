@@ -60,12 +60,23 @@ function loadFrames(animName) {
   }
 }
 
+const cmdQueue = [];
+let cmdBusy = false;
+
 function sendCommand(cmd) {
   return new Promise((resolve) => {
     if (!py || py.killed) { resolve(); return; }
-    ackResolve = resolve;
-    py.stdin.write(JSON.stringify(cmd) + '\n');
+    cmdQueue.push({ cmd, resolve });
+    if (!cmdBusy) flushQueue();
   });
+}
+
+function flushQueue() {
+  if (cmdQueue.length === 0 || !py || py.killed) { cmdBusy = false; return; }
+  cmdBusy = true;
+  const { cmd, resolve } = cmdQueue.shift();
+  ackResolve = resolve;
+  py.stdin.write(JSON.stringify(cmd) + '\n');
 }
 
 function sendFrame(framePath, screen = NINJA_SCREEN) {
@@ -77,6 +88,7 @@ function onAck(line) {
     const r = ackResolve;
     ackResolve = null;
     r();
+    flushQueue();
   }
 }
 
