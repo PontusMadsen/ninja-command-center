@@ -44,7 +44,7 @@ DISPLAYS = [
 
 SCREEN_W = 240
 SCREEN_H = 320
-SPI_SPEED = 32_000_000  # 32 MHz — safe for ILI9341 over jumper wires
+SPI_SPEED = 8_000_000  # 8 MHz — conservative for jumper wires, increase once stable
 
 
 # --- ILI9341 driver ---
