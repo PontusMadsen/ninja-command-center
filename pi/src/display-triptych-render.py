@@ -87,18 +87,39 @@ class ILI9341:
         self._cmd(0x01)  # Software reset
         time.sleep(0.15)
         self._cmd(0x11)  # Sleep out
-        time.sleep(0.15)
+        time.sleep(0.5)
 
-        # Pixel format: 16-bit RGB565
-        self._cmd(0x3A, [0x55])
+        # Full ILI9341 init sequence
+        self._cmd(0xEF, [0x03, 0x80, 0x02])
+        self._cmd(0xCF, [0x00, 0xC1, 0x30])           # Power control B
+        self._cmd(0xED, [0x64, 0x03, 0x12, 0x81])      # Power on sequence
+        self._cmd(0xE8, [0x85, 0x00, 0x78])             # Driver timing A
+        self._cmd(0xCB, [0x39, 0x2C, 0x00, 0x34, 0x02]) # Power control A
+        self._cmd(0xF7, [0x20])                          # Pump ratio
+        self._cmd(0xEA, [0x00, 0x00])                    # Driver timing B
+        self._cmd(0xC0, [0x23])                          # Power control 1
+        self._cmd(0xC1, [0x10])                          # Power control 2
+        self._cmd(0xC5, [0x3E, 0x28])                    # VCOM control 1
+        self._cmd(0xC7, [0x86])                          # VCOM control 2
 
-        # Memory access control: portrait, top-left origin
-        # 0x48=normal, 0x88=180°. Flip if displays are mounted upside-down.
-        madctl = int(os.environ.get('ILI9341_MADCTL', '0x88'), 16)
+        # Memory access control: portrait orientation
+        # 0x48=normal portrait, 0x88=180° portrait
+        madctl = int(os.environ.get('ILI9341_MADCTL', '0x48'), 16)
         self._cmd(0x36, [madctl])
 
-        # Display on
-        self._cmd(0x29)
+        self._cmd(0x3A, [0x55])  # Pixel format: 16-bit RGB565
+        self._cmd(0xB1, [0x00, 0x18])  # Frame rate: 79Hz
+        self._cmd(0xB6, [0x08, 0x82, 0x27])  # Display function
+        self._cmd(0xF2, [0x00])  # 3Gamma off
+        self._cmd(0x26, [0x01])  # Gamma curve 1
+        self._cmd(0xE0, [0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E,
+                         0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00])  # Positive gamma
+        self._cmd(0xE1, [0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31,
+                         0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F])  # Negative gamma
+
+        self._cmd(0x11)  # Sleep out
+        time.sleep(0.12)
+        self._cmd(0x29)  # Display on
         time.sleep(0.05)
 
     def set_window(self, x0, y0, x1, y1):
@@ -197,6 +218,10 @@ def main():
             else:
                 idx = int(screen)
                 if 0 <= idx < len(screens):
+                    # Rotate landscape frames (320×240) to portrait (240×320)
+                    w, h = img.size
+                    if w > h:
+                        img = img.rotate(90, expand=True)
                     img = img.resize((SCREEN_W, SCREEN_H))
                     data = rgb_to_565(img)
                     screens[idx].push_pixels(data)
