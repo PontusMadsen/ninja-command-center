@@ -179,9 +179,6 @@ def main():
             else:
                 idx = int(screen)
                 if 0 <= idx < len(screens):
-                    w, h = img.size
-                    if w > h:
-                        img = img.transpose(Image.ROTATE_90)
                     img = img.resize((SCREEN_W, SCREEN_H))
                     screens[idx].push_frame(converters[idx](img))
 
