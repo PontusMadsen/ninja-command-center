@@ -16,6 +16,8 @@ if (DISPLAY_MODE === 'none') {
     buzz: () => {},
     close: () => {},
   };
+} else if (DISPLAY_MODE === 'triptych') {
+  displayMod = await import('./display-triptych.js');
 } else if (DISPLAY_MODE === 'pitft') {
   displayMod = await import('./display-pitft.js');
 } else if (DISPLAY_MODE === 'oled') {
