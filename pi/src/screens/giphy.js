@@ -12,7 +12,7 @@ export default class GifScreen {
   constructor({ sendCommand, screen = 2 }) {
     this.sendCommand = sendCommand;
     this.screen = screen;
-    this.tag = process.env.GIF_TAG || 'cat';
+    this.tag = process.env.GIF_TAG || 'cat pixelart';
     this.timer = null;
     this.active = false;
   }
