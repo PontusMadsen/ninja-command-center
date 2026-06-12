@@ -16,6 +16,9 @@ import json
 import os
 import sys
 import time
+import threading
+import urllib.request
+import io
 from datetime import datetime
 
 import numpy as np
@@ -334,6 +337,69 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     return canvas
 
 
+# --- GIF renderer (background loop) ---
+
+_gif_threads = {}  # screen_idx → thread
+_gif_stop = {}     # screen_idx → Event
+
+
+def _gif_loop(screen_idx, frames, delays, screens, converter):
+    """Loop GIF frames on a screen until stopped."""
+    stop_event = _gif_stop[screen_idx]
+    while not stop_event.is_set():
+        for frame, delay in zip(frames, delays):
+            if stop_event.is_set():
+                break
+            screens[screen_idx].push_frame(converter(frame))
+            stop_event.wait(delay / 1000.0)
+
+
+def stop_gif(screen_idx):
+    """Stop any running GIF loop on a screen."""
+    if screen_idx in _gif_stop:
+        _gif_stop[screen_idx].set()
+    if screen_idx in _gif_threads:
+        _gif_threads[screen_idx].join(timeout=2)
+        del _gif_threads[screen_idx]
+        del _gif_stop[screen_idx]
+
+
+def start_gif(screen_idx, url, screens, converter):
+    """Download GIF, extract frames, start looping."""
+    stop_gif(screen_idx)
+
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'NinjaCommandCenter/1.0'})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            gif = Image.open(io.BytesIO(resp.read()))
+    except Exception as e:
+        sys.stderr.write(f'gif download error: {e}\n')
+        sys.stderr.flush()
+        return
+
+    frames = []
+    delays = []
+    try:
+        while True:
+            frame = gif.copy().convert('RGB').resize((SCREEN_W, SCREEN_H))
+            frames.append(frame)
+            delays.append(gif.info.get('duration', 100))
+            gif.seek(gif.tell() + 1)
+    except EOFError:
+        pass
+
+    if not frames:
+        return
+
+    sys.stderr.write(f'gif: {len(frames)} frames from {url[:60]}\n')
+    sys.stderr.flush()
+
+    _gif_stop[screen_idx] = threading.Event()
+    t = threading.Thread(target=_gif_loop, args=(screen_idx, frames, delays, screens, converter), daemon=True)
+    _gif_threads[screen_idx] = t
+    t.start()
+
+
 # --- Main ---
 
 def main():
@@ -376,7 +442,12 @@ def main():
         cmd_type = cmd.get('type', 'image')
 
         try:
-            if cmd_type == 'spotify':
+            if cmd_type == 'gif':
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    start_gif(idx, cmd.get('url', ''), screens, converters[idx])
+            elif cmd_type == 'spotify':
+                stop_gif(int(screen))
                 img = render_spotify(
                     cmd.get('track', ''),
                     cmd.get('artist', ''),
@@ -390,6 +461,7 @@ def main():
                 if 0 <= idx < len(screens):
                     screens[idx].push_frame(converters[idx](img))
             elif cmd_type == 'clock':
+                stop_gif(int(screen))
                 img = render_clock(
                     cmd.get('local_tz', 'Asia/Tokyo'),
                     cmd.get('remote_tz', 'Europe/Stockholm'),
@@ -399,6 +471,7 @@ def main():
                 if 0 <= idx < len(screens):
                     screens[idx].push_frame(converters[idx](img))
             elif path:
+                stop_gif(int(screen) if screen != 'all' else -1)
                 img = Image.open(path).convert('RGB')
                 if screen == 'all':
                     img = img.resize((720, 320))

@@ -245,8 +245,17 @@ async function main() {
 
     const { getNowPlaying } = await import('./integrations/spotify.js');
     const { default: SpotifyScreen } = await import('./screens/spotify.js');
-    const spotify = new SpotifyScreen({ sendCommand, screen: 2, getNowPlaying });
-    spotify.start();
+    const { default: GiphyScreen } = await import('./screens/giphy.js');
+
+    const giphy = new GiphyScreen({ sendCommand, screen: 2 });
+    const spotifyScreen = new SpotifyScreen({ sendCommand, screen: 2, getNowPlaying });
+
+    spotifyScreen.onShow = () => giphy.stop();
+    spotifyScreen.onHide = () => giphy.start();
+
+    spotifyScreen.start();
+    // Start giphy only if spotify isn't playing
+    if (!getNowPlaying()?.playing) giphy.start();
   }
 
   // Start nudge scheduler
