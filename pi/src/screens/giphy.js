@@ -6,7 +6,7 @@ import { get } from 'https';
 import logger from '../logger.js';
 
 const TENOR_API_KEY = process.env.TENOR_API_KEY || 'LIVDSRZULELA';
-const GIF_INTERVAL = 120_000; // new GIF every 2 minutes
+const GIF_INTERVAL = 60_000; // new GIF every minute
 
 export default class GifScreen {
   constructor({ sendCommand, screen = 2 }) {
