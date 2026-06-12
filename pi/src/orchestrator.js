@@ -204,10 +204,11 @@ async function handleVoiceTurn() {
     voiceActive = false;
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
-    // Restore screen 2 to todo
-    if (screenModules.todo) {
-      screenModules.todo.lastJson = '';
-      screenModules.todo.tick();
+    // Restore screen 2
+    const activeScreen = screenModules.habits || screenModules.todo;
+    if (activeScreen) {
+      activeScreen.lastJson = '';
+      activeScreen.tick();
     }
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
@@ -253,9 +254,9 @@ async function main() {
     const clock = new ClockScreen({ sendCommand, screen: 0 });
     clock.start();
 
-    const { default: TodoScreen } = await import('./screens/todo.js');
-    screenModules.todo = new TodoScreen({ sendCommand, screen: 2 });
-    screenModules.todo.start();
+    const { default: HabitsScreen } = await import('./screens/habits.js');
+    screenModules.habits = new HabitsScreen({ sendCommand, screen: 2 });
+    screenModules.habits.start();
   }
 
   // Start nudge scheduler
