@@ -137,7 +137,8 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 
 # Pre-load fonts
-PIXEL_FONT = '/usr/share/fonts/truetype/pressstart2p/PressStart2P-Regular.ttf'
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 32)
