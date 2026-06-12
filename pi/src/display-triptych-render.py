@@ -142,7 +142,7 @@ PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
-    FONT_TIME = ImageFont.truetype(PIXEL_FONT, 175)
+    FONT_TIME = ImageFont.truetype(PIXEL_FONT, 168)
     FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 50)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
