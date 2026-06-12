@@ -259,6 +259,8 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
 
     # ── Track name — big, word-wrapped ──
     track_text = track or ''
+    if len(track_text) > 37:
+        track_text = track_text[:36] + '...'
     lines = _wrap_text(track_text, FONT_TRACK, SCREEN_W - margin * 2, draw)
     y = 55
     line_h = 38
