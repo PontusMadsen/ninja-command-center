@@ -186,7 +186,7 @@ async function handleVoiceTurn() {
       setFace('focused');
 
       text = await transcribe(audio);
-      if (!text || text.length < 2) {
+      if (!text || text.length < 5) {
         logger.info('No follow-up detected, ending conversation');
         break;
       }
