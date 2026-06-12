@@ -192,91 +192,60 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
 
 # --- Spotify renderer ---
 
-import random
-
-_spectrum_bars = [0] * 16  # fake spectrum state
-_scroll_offset = 0
+def _wrap_text(text, font, max_width, draw):
+    """Word-wrap text to fit within max_width."""
+    words = text.split(' ')
+    lines = []
+    current = ''
+    for word in words:
+        test = f'{current} {word}'.strip()
+        bbox = draw.textbbox((0, 0), test, font=font)
+        if bbox[2] - bbox[0] > max_width and current:
+            lines.append(current)
+            current = word
+        else:
+            current = test
+    if current:
+        lines.append(current)
+    return lines
 
 
 def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
-    """Generate a 240×320 retro LCD-style now-playing screen."""
-    global _spectrum_bars, _scroll_offset
+    """Generate a 240×320 Spotify now-playing screen."""
+    bg = (56, 56, 53)           # #383835
+    text_color = (225, 224, 216) # #e1e0d8
+    dim = (120, 120, 115)
+    bar_bg = (80, 80, 75)
 
-    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), bg)
     draw = ImageDraw.Draw(canvas)
 
-    color = (30, 215, 96)       # Spotify green
-    dim = (15, 100, 45)         # dimmed green
-    gray = (80, 80, 80)
+    # ── Header: Now playing ──
+    draw.text((15, 15), '\u266b', fill=text_color, font=FONT_MED)
+    draw.text((42, 19), 'Now playing', fill=text_color, font=FONT_LABEL)
 
-    # ── Music note icon + "NOW PLAYING" ──
-    draw.text((10, 12), '\u266b', fill=color, font=FONT_MED)
-    draw.text((40, 16), 'NOW PLAYING', fill=gray, font=FONT_LABEL)
-
-    # ── Spectrum analyzer bars ──
-    num_bars = 16
-    bar_w = (SCREEN_W - 20) // num_bars
-    max_h = 80
-    base_y = 160
-
-    # Animate: smoothly drift toward random targets
-    for i in range(num_bars):
-        target = random.randint(15, max_h)
-        _spectrum_bars[i] = _spectrum_bars[i] + (target - _spectrum_bars[i]) * 0.4
-
-    for i in range(num_bars):
-        h = int(_spectrum_bars[i])
-        x = 10 + i * bar_w
-        # Each bar is a stack of small blocks
-        block_h = 4
-        gap = 2
-        blocks = h // (block_h + gap)
-        for b in range(blocks):
-            by = base_y - (b + 1) * (block_h + gap)
-            c = color if b < blocks - 1 else dim
-            draw.rectangle([x, by, x + bar_w - 2, by + block_h], fill=c)
-
-    # ── Track name ── scrolling if long
-    y_track = 180
+    # ── Track name — large, word-wrapped ──
     track_text = track or ''
-    bbox = draw.textbbox((0, 0), track_text, font=FONT_SMALL)
-    tw = bbox[2] - bbox[0]
-    if tw > SCREEN_W - 20:
-        # Scroll
-        padded = track_text + '    \u2022    ' + track_text
-        _scroll_offset = (_scroll_offset + 2) % (tw + 50)
-        draw.text((10 - _scroll_offset, y_track), padded, fill=(255, 255, 255), font=FONT_SMALL)
-    else:
-        _scroll_offset = 0
-        draw.text(((SCREEN_W - tw) // 2, y_track), track_text, fill=(255, 255, 255), font=FONT_SMALL)
+    lines = _wrap_text(track_text, FONT_MED, SCREEN_W - 30, draw)
+    y = 90
+    for line in lines[:4]:
+        draw.text((15, y), line, fill=text_color, font=FONT_MED)
+        y += 30
 
     # ── Artist ──
-    y_artist = 205
     artist_text = artist or ''
-    bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
-    tw = bbox[2] - bbox[0]
-    if tw > SCREEN_W - 20:
-        artist_text = artist_text[:28] + '..'
-        bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
-        tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, y_artist), artist_text, fill=gray, font=FONT_LABEL)
+    artist_y = max(y + 15, 210)
+    draw.text((15, artist_y), artist_text, fill=text_color, font=FONT_SMALL)
 
     # ── Progress bar ──
     if duration_ms and duration_ms > 0:
         progress = min(progress_ms / duration_ms, 1.0)
-        bar_y = 240
-        bar_x = 10
-        bar_w_total = SCREEN_W - 20
-        bar_h = 6
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w_total, bar_y + bar_h], fill=(30, 30, 30))
-        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w_total * progress), bar_y + bar_h], fill=color)
-
-        # Time
-        elapsed = f'{progress_ms // 60000}:{(progress_ms // 1000) % 60:02d}'
-        total = f'{duration_ms // 60000}:{(duration_ms // 1000) % 60:02d}'
-        draw.text((bar_x, bar_y + 12), elapsed, fill=gray, font=FONT_LABEL)
-        bbox = draw.textbbox((0, 0), total, font=FONT_LABEL)
-        draw.text((bar_x + bar_w_total - (bbox[2] - bbox[0]), bar_y + 12), total, fill=gray, font=FONT_LABEL)
+        bar_y = artist_y + 30
+        bar_x = 15
+        bar_w = SCREEN_W - 30
+        bar_h = 8
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=bar_bg)
+        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=text_color)
 
     return canvas
 
