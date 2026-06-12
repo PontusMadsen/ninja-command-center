@@ -141,13 +141,13 @@ PIXEL_FONT = '/usr/share/fonts/truetype/pressstart2p/PressStart2P-Regular.ttf'
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 32)
-    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 24)
+    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 21)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 14)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 10)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 8)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
-    FONT_TRACK = ImageFont.truetype(FALLBACK, 34)
+    FONT_TRACK = ImageFont.truetype(FALLBACK, 30)
     FONT_MED = ImageFont.truetype(FALLBACK, 24)
     FONT_SMALL = ImageFont.truetype(FALLBACK, 16)
     FONT_LABEL = ImageFont.truetype(FALLBACK, 12)
