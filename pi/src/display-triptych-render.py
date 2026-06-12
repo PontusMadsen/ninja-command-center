@@ -144,7 +144,7 @@ try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
     FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 50)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
-    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 42)
+    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 24)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
