@@ -260,7 +260,7 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     track_text = track or ''
     lines = _wrap_text(track_text, FONT_TRACK, SCREEN_W - margin * 2, draw)
     y = 80
-    line_h = 36
+    line_h = 28
     for line in lines[:4]:
         draw.text((margin, y), line, fill=fg, font=FONT_TRACK)
         y += line_h
