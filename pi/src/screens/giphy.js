@@ -9,7 +9,7 @@ import { join } from 'path';
 import logger from '../logger.js';
 
 const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'dc6zaTOxFJmzC'; // public beta key
-const GIF_INTERVAL = 30_000; // new GIF every 30 seconds
+const GIF_INTERVAL = 120_000; // new GIF every 2 minutes (100 calls/hour limit)
 
 export default class GiphyScreen {
   constructor({ sendCommand, screen = 2 }) {
