@@ -1,27 +1,24 @@
 /**
- * Giphy screen module — shows random GIF animations.
- * Fetches from Giphy API, downloads GIF, sends frames to renderer.
+ * GIF screen module — shows random GIF animations from Tenor.
  */
 
 import { get } from 'https';
-import { writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
 import logger from '../logger.js';
 
-const GIPHY_API_KEY = process.env.GIPHY_API_KEY || 'dc6zaTOxFJmzC'; // public beta key
-const GIF_INTERVAL = 120_000; // new GIF every 2 minutes (100 calls/hour limit)
+const TENOR_API_KEY = process.env.TENOR_API_KEY || 'LIVDSRZULELA';
+const GIF_INTERVAL = 120_000; // new GIF every 2 minutes
 
-export default class GiphyScreen {
+export default class GifScreen {
   constructor({ sendCommand, screen = 2 }) {
     this.sendCommand = sendCommand;
     this.screen = screen;
-    this.tag = process.env.GIPHY_TAG || 'cat';
+    this.tag = process.env.GIF_TAG || 'cat';
     this.timer = null;
     this.active = false;
   }
 
   start() {
-    logger.info({ screen: this.screen, tag: this.tag }, 'Giphy screen started');
+    logger.info({ screen: this.screen, tag: this.tag }, 'GIF screen started');
     this.active = true;
     this.fetchAndShow();
     this.timer = setInterval(() => this.fetchAndShow(), GIF_INTERVAL);
@@ -38,20 +35,18 @@ export default class GiphyScreen {
 
     try {
       const data = await this._apiRequest(
-        `https://api.giphy.com/v1/gifs/random?api_key=${GIPHY_API_KEY}&tag=${encodeURIComponent(this.tag)}&rating=g`
+        `https://g.tenor.com/v1/random?q=${encodeURIComponent(this.tag)}&key=${TENOR_API_KEY}&limit=1`
       );
 
-      const gif = data?.data;
-      if (!gif) return;
+      const result = data?.results?.[0];
+      if (!result) return;
 
-      // Use fixed_height_small for reasonable size
-      const url = gif.images?.fixed_height_small?.url
-        || gif.images?.fixed_height?.url
-        || gif.images?.original?.url;
+      const url = result.media?.[0]?.tinygif?.url
+        || result.media?.[0]?.gif?.url;
 
       if (!url) return;
 
-      logger.info({ tag: this.tag, id: gif.id }, 'Giphy: new GIF');
+      logger.info({ tag: this.tag }, 'GIF: new');
 
       this.sendCommand({
         screen: this.screen,
@@ -60,7 +55,7 @@ export default class GiphyScreen {
       });
 
     } catch (e) {
-      logger.warn({ err: e.message }, 'Giphy fetch failed');
+      logger.warn({ err: e.message }, 'GIF fetch failed');
     }
   }
 
@@ -79,7 +74,7 @@ export default class GiphyScreen {
 
   setTag(tag) {
     this.tag = tag;
-    logger.info({ tag }, 'Giphy tag changed');
+    logger.info({ tag }, 'GIF tag changed');
     this.fetchAndShow();
   }
 }

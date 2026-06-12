@@ -243,9 +243,9 @@ async function main() {
     const clock = new ClockScreen({ sendCommand, screen: 0 });
     clock.start();
 
-    const { default: GiphyScreen } = await import('./screens/giphy.js');
-    const giphy = new GiphyScreen({ sendCommand, screen: 2 });
-    giphy.start();
+    const { default: GifScreen } = await import('./screens/giphy.js');
+    const gifScreen = new GifScreen({ sendCommand, screen: 2 });
+    gifScreen.start();
   }
 
   // Start nudge scheduler
