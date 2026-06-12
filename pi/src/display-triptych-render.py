@@ -154,41 +154,52 @@ except Exception:
     FONT_LABEL = ImageFont.truetype(FALLBACK, 12)
 
 
+# Pre-load clock icon
+_clock_icon = None
+
+def _load_clock_icon():
+    global _clock_icon
+    if _clock_icon:
+        return _clock_icon
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'icons', 'clock.png')
+    try:
+        _clock_icon = Image.open(path).convert('RGBA')
+    except Exception:
+        pass
+    return _clock_icon
+
+
 def render_clock(local_tz_name, remote_tz_name, remote_label):
     """Generate a 240×320 clock screen image."""
+    fg = (210, 200, 150)        # nicotine eggshell
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
     draw = ImageDraw.Draw(canvas)
+    margin = 15
 
     local_tz = ZoneInfo(local_tz_name)
     remote_tz = ZoneInfo(remote_tz_name)
     now = datetime.now(local_tz)
     remote_now = datetime.now(remote_tz)
 
-    # Local time — big, centered
+    # Date — above time
+    date_str = now.strftime('%A %d, %B')
+    draw.text((margin, 80), date_str, fill=fg, font=FONT_LABEL)
+
+    # Local time — huge
     time_str = now.strftime('%H:%M')
-    bbox = draw.textbbox((0, 0), time_str, font=FONT_BIG)
-    tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, 60), time_str, fill=(255, 255, 255), font=FONT_BIG)
+    draw.text((margin, 110), time_str, fill=fg, font=FONT_BIG)
 
-    # Date
-    date_str = now.strftime('%a %d %b')
-    bbox = draw.textbbox((0, 0), date_str, font=FONT_MED)
-    tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, 140), date_str, fill=(180, 180, 180), font=FONT_MED)
+    # Remote section — bottom
+    remote_label_text = f'And in {remote_label}'
+    draw.text((margin, SCREEN_H - 80), remote_label_text, fill=fg, font=FONT_LABEL)
 
-    # Divider line
-    draw.line([(40, 200), (SCREEN_W - 40, 200)], fill=(60, 60, 60), width=1)
+    remote_time_str = "it's " + remote_now.strftime('%H:%M')
+    draw.text((margin, SCREEN_H - 50), remote_time_str, fill=fg, font=FONT_SMALL)
 
-    # Remote time
-    remote_time_str = remote_now.strftime('%H:%M')
-    bbox = draw.textbbox((0, 0), remote_time_str, font=FONT_MED)
-    tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, 225), remote_time_str, fill=(100, 160, 255), font=FONT_MED)
-
-    # Remote label
-    bbox = draw.textbbox((0, 0), remote_label, font=FONT_LABEL)
-    tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, 265), remote_label, fill=(80, 80, 80), font=FONT_LABEL)
+    # Clock icon — bottom right
+    icon = _load_clock_icon()
+    if icon:
+        canvas.paste(icon, (SCREEN_W - margin - icon.size[0], SCREEN_H - margin - icon.size[1]), icon)
 
     return canvas
 
