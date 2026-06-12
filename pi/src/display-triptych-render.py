@@ -228,7 +228,7 @@ def _wrap_text(text, font, max_width, draw):
 
 def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
     """Generate a 240×320 Spotify now-playing screen."""
-    bg = (56, 56, 53)           # #383835
+    bg = (0, 0, 0)              # black — backlight makes gray too bright
     fg = (225, 224, 216)        # #e1e0d8
     bar_bg = (80, 80, 75)
 
@@ -255,13 +255,16 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
         draw.text((margin, y), line, fill=fg, font=FONT_MED)
         y += line_h
 
-    # ── Artist — fixed spacing below track ──
+    # ── Artist — fixed spacing below track, word-wrapped ──
     y += spacing
     artist_text = artist or ''
-    draw.text((margin, y), artist_text, fill=fg, font=FONT_SMALL)
+    artist_lines = _wrap_text(artist_text, FONT_SMALL, SCREEN_W - margin * 2, draw)
+    for line in artist_lines[:3]:
+        draw.text((margin, y), line, fill=fg, font=FONT_SMALL)
+        y += 18
 
     # ── Progress bar — fixed spacing below artist ──
-    y += 22 + spacing
+    y += spacing
     if duration_ms and duration_ms > 0:
         progress = min(progress_ms / duration_ms, 1.0)
         bar_w = SCREEN_W - margin * 2
