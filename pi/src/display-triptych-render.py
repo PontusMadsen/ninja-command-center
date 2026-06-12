@@ -183,9 +183,21 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     now = datetime.now(local_tz)
     remote_now = datetime.now(remote_tz)
 
-    # Date — same Y as track name in spotify (y=55)
+    # Header: clock icon + date (same layout as spotify header)
+    header_y = 15
     date_str = now.strftime('%A %d, %B')
-    draw.text((margin, 55), date_str, fill=fg, font=FONT_LABEL)
+    icon = _load_clock_icon()
+    label_bbox = draw.textbbox((0, 0), date_str, font=FONT_LABEL)
+    label_h = label_bbox[3] - label_bbox[1]
+    if icon:
+        icon_h = icon.size[1]
+        row_h = max(icon_h, label_h)
+        icon_y = header_y + (row_h - icon_h) // 2
+        label_y = header_y + (row_h - label_h) // 2
+        canvas.paste(icon, (margin, icon_y), icon)
+        draw.text((margin + icon.size[0] + 6, label_y), date_str, fill=fg, font=FONT_LABEL)
+    else:
+        draw.text((margin, header_y), date_str, fill=fg, font=FONT_LABEL)
 
     # Local time — massive, fill width
     time_str = now.strftime('%H:%M')
@@ -198,10 +210,7 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     remote_time_str = "it's " + remote_now.strftime('%H:%M')
     draw.text((margin, SCREEN_H - 48), remote_time_str, fill=fg, font=FONT_SMALL)
 
-    # Clock icon — bottom right
-    icon = _load_clock_icon()
-    if icon:
-        canvas.paste(icon, (SCREEN_W - margin - icon.size[0], SCREEN_H - margin - icon.size[1]), icon)
+
 
     return canvas
 
