@@ -141,11 +141,13 @@ PIXEL_FONT = '/usr/share/fonts/truetype/pressstart2p/PressStart2P-Regular.ttf'
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 32)
+    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 26)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 14)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 10)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 8)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
+    FONT_TRACK = ImageFont.truetype(FALLBACK, 36)
     FONT_MED = ImageFont.truetype(FALLBACK, 24)
     FONT_SMALL = ImageFont.truetype(FALLBACK, 16)
     FONT_LABEL = ImageFont.truetype(FALLBACK, 12)
@@ -256,11 +258,11 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
 
     # ── Track name — big, word-wrapped ──
     track_text = track or ''
-    lines = _wrap_text(track_text, FONT_BIG, SCREEN_W - margin * 2, draw)
+    lines = _wrap_text(track_text, FONT_TRACK, SCREEN_W - margin * 2, draw)
     y = 80
-    line_h = 42
+    line_h = 36
     for line in lines[:4]:
-        draw.text((margin, y), line, fill=fg, font=FONT_BIG)
+        draw.text((margin, y), line, fill=fg, font=FONT_TRACK)
         y += line_h
 
     # ── Artist — fixed spacing below track, word-wrapped ──
@@ -281,18 +283,21 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
         draw.rectangle([margin, y, margin + int(bar_w * progress), y + bar_h], fill=fg)
 
     # ── Bottom icons: ninja-headphones (left), tape + audi-bars (right) ──
-    bottom_y = SCREEN_H - 55
+    # All icons align bottom to same baseline
+    bottom_baseline = SCREEN_H - margin
     ninja = icons.get('ninja-headphones')
     if ninja:
-        canvas.paste(ninja, (margin, bottom_y), ninja)
+        canvas.paste(ninja, (margin, bottom_baseline - ninja.size[1]), ninja)
 
     tape = icons.get('tape')
     bars = icons.get('audi-bars')
     if tape and bars:
-        canvas.paste(tape, (SCREEN_W - margin - 24 - 6 - 24, bottom_y + 14), tape)
-        canvas.paste(bars, (SCREEN_W - margin - 24, bottom_y + 12), bars)
+        bars_x = SCREEN_W - margin - bars.size[0]
+        tape_x = bars_x - 6 - tape.size[0]
+        canvas.paste(tape, (tape_x, bottom_baseline - tape.size[1]), tape)
+        canvas.paste(bars, (bars_x, bottom_baseline - bars.size[1]), bars)
     elif tape:
-        canvas.paste(tape, (SCREEN_W - margin - 24, bottom_y + 14), tape)
+        canvas.paste(tape, (SCREEN_W - margin - tape.size[0], bottom_baseline - tape.size[1]), tape)
 
     return canvas
 
