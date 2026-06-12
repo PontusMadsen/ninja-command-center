@@ -172,8 +172,8 @@ try:
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 24)
-    FONT_CJK_MED = ImageFont.truetype(CJK_FONT, 28)
-    FONT_CJK_SMALL = ImageFont.truetype(CJK_FONT, 22)
+    FONT_CJK_MED = ImageFont.truetype(CJK_FONT, 10)
+    FONT_CJK_SMALL = ImageFont.truetype(CJK_FONT, 8)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
     FONT_TIME = ImageFont.truetype(FALLBACK, 140)
