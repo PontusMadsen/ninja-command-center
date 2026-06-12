@@ -142,9 +142,9 @@ PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
-    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 54)
+    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 50)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
-    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
+    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 42)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 24)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
@@ -261,13 +261,13 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     track_text = track or ''
     lines = _wrap_text(track_text, FONT_TRACK, SCREEN_W - margin * 2, draw)
     y = 80
-    line_h = 48
+    line_h = 38
     for line in lines[:4]:
         draw.text((margin, y), line, fill=fg, font=FONT_TRACK)
         y += line_h
 
     # ── Artist — fixed spacing below track, word-wrapped ──
-    y += spacing * 2
+    y += spacing
     artist_text = artist or ''
     artist_lines = _wrap_text(artist_text, FONT_SMALL, SCREEN_W - margin * 2, draw)
     for line in artist_lines[:3]:
@@ -275,7 +275,7 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
         y += 28
 
     # ── Progress bar — fixed spacing below artist ──
-    y += spacing * 2
+    y += spacing
     if duration_ms and duration_ms > 0:
         progress = min(progress_ms / duration_ms, 1.0)
         bar_w = SCREEN_W - margin * 2
