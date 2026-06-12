@@ -379,30 +379,34 @@ def render_todo(tasks, total):
     y = 65
     box_size = 14
     item_spacing = 8
+    max_items = 4
+    shown = 0
 
-    for task_text in tasks:
-        # Checkbox
-        draw.rectangle([margin, y + 2, margin + box_size, y + 2 + box_size], outline=fg, width=2)
-
+    for task_text in tasks[:max_items]:
         # Task text — wrap if needed
         text_x = margin + box_size + 10
         max_w = SCREEN_W - text_x - margin
-        lines = _wrap_text(task_text, FONT_SMALL, max_w, draw)
+        lines = _wrap_text(task_text, FONT_LABEL, max_w, draw)
+
+        # Checkbox — vertically centered with first line of text
+        text_bbox = draw.textbbox((0, 0), lines[0], font=FONT_LABEL)
+        text_h = text_bbox[3] - text_bbox[1]
+        box_y = y + (text_h - box_size) // 2
+        draw.rectangle([margin, box_y, margin + box_size, box_y + box_size], outline=fg, width=2)
+
         for line in lines[:2]:
-            draw.text((text_x, y), line, fill=fg, font=FONT_SMALL)
-            y += 24
+            draw.text((text_x, y), line, fill=fg, font=FONT_LABEL)
+            y += 20
         y += item_spacing
+        shown += 1
 
-        if y > SCREEN_H - 60:
-            break
-
-    # "+ N more" at bottom right if there are more
-    shown = len(tasks)
-    if total > shown:
-        more_text = f'+ {total - shown} more'
-        bbox = draw.textbbox((0, 0), more_text, font=FONT_SMALL)
+    # "+ N more" at bottom right
+    remaining = total - shown
+    if remaining > 0:
+        more_text = f'+ {remaining} more'
+        bbox = draw.textbbox((0, 0), more_text, font=FONT_LABEL)
         tw = bbox[2] - bbox[0]
-        draw.text((SCREEN_W - margin - tw, SCREEN_H - margin - 28), more_text, fill=dim, font=FONT_SMALL)
+        draw.text((SCREEN_W - margin - tw, SCREEN_H - margin - 24), more_text, fill=dim, font=FONT_LABEL)
 
     return canvas
 
