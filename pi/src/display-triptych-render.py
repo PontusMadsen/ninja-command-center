@@ -142,12 +142,14 @@ PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
+    FONT_TIME = ImageFont.truetype(PIXEL_FONT, 90)
     FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 50)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 24)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
+    FONT_TIME = ImageFont.truetype(FALLBACK, 72)
     FONT_TRACK = ImageFont.truetype(FALLBACK, 30)
     FONT_MED = ImageFont.truetype(FALLBACK, 24)
     FONT_SMALL = ImageFont.truetype(FALLBACK, 16)
@@ -181,20 +183,20 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     now = datetime.now(local_tz)
     remote_now = datetime.now(remote_tz)
 
-    # Date — above time
+    # Date — same Y as track name in spotify (y=55)
     date_str = now.strftime('%A %d, %B')
-    draw.text((margin, 80), date_str, fill=fg, font=FONT_LABEL)
+    draw.text((margin, 55), date_str, fill=fg, font=FONT_LABEL)
 
-    # Local time — huge
+    # Local time — massive, fill width
     time_str = now.strftime('%H:%M')
-    draw.text((margin, 110), time_str, fill=fg, font=FONT_BIG)
+    draw.text((margin, 85), time_str, fill=fg, font=FONT_TIME)
 
-    # Remote section — bottom
+    # Remote section — bottom, same size for both lines, tight line height
     remote_label_text = f'And in {remote_label}'
-    draw.text((margin, SCREEN_H - 80), remote_label_text, fill=fg, font=FONT_LABEL)
+    draw.text((margin, SCREEN_H - 75), remote_label_text, fill=fg, font=FONT_SMALL)
 
     remote_time_str = "it's " + remote_now.strftime('%H:%M')
-    draw.text((margin, SCREEN_H - 50), remote_time_str, fill=fg, font=FONT_SMALL)
+    draw.text((margin, SCREEN_H - 48), remote_time_str, fill=fg, font=FONT_SMALL)
 
     # Clock icon — bottom right
     icon = _load_clock_icon()
