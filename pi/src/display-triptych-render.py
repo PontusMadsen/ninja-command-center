@@ -223,39 +223,63 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
     draw = ImageDraw.Draw(canvas)
 
-    # Album art — full width, crisp
+    # Album art — full width, square, high quality
+    art_size = SCREEN_W
     art = fetch_album_art(album_art_url)
     if art:
-        art_resized = art.resize((SCREEN_W, SCREEN_W), Image.NEAREST)
+        art_resized = art.resize((art_size, art_size), Image.LANCZOS)
         canvas.paste(art_resized, (0, 0))
 
-    # Track name
-    y = SCREEN_W + 10
+        # Gradient fade at bottom of art for readability
+        for y in range(40):
+            alpha = int(200 * (y / 40))
+            draw.line([(0, art_size - 40 + y), (SCREEN_W, art_size - 40 + y)],
+                      fill=(0, 0, 0), width=1)
+            # Blend by drawing semi-transparent lines
+            # PIL doesn't support alpha on RGB, so we darken progressively
+            if y > 10:
+                fade = int(255 * ((y - 10) / 30) ** 1.5)
+                draw.line([(0, art_size - 40 + y), (SCREEN_W, art_size - 40 + y)],
+                          fill=(0, 0, 0))
+
+        # Re-paste art with manual gradient
+        art_resized2 = art_resized.copy()
+        from PIL import ImageEnhance
+        # Darken bottom portion of art
+        arr = np.array(art_resized2)
+        for y in range(art_size - 50, art_size):
+            factor = 1.0 - ((y - (art_size - 50)) / 50) * 0.85
+            arr[y] = (arr[y] * factor).astype(np.uint8)
+        art_faded = Image.fromarray(arr)
+        canvas.paste(art_faded, (0, 0))
+
+    # Progress bar — overlaid on bottom edge of album art
+    if duration_ms and duration_ms > 0:
+        progress = min(progress_ms / duration_ms, 1.0)
+        bar_y = art_size - 6
+        bar_x = 0
+        bar_w = SCREEN_W
+        bar_h = 6
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(60, 60, 60))
+        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=(30, 215, 96))
+
+    # Track name — below art
+    y_text = art_size + 12
     track_text = track or ''
     if len(track_text) > 20:
         track_text = track_text[:19] + '.'
     bbox = draw.textbbox((0, 0), track_text, font=FONT_SMALL)
     tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, y), track_text, fill=(255, 255, 255), font=FONT_SMALL)
+    draw.text(((SCREEN_W - tw) // 2, y_text), track_text, fill=(255, 255, 255), font=FONT_SMALL)
 
     # Artist
-    y = SCREEN_W + 35
+    y_artist = y_text + 22
     artist_text = artist or ''
     if len(artist_text) > 24:
         artist_text = artist_text[:23] + '.'
     bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
     tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, y), artist_text, fill=(120, 120, 120), font=FONT_LABEL)
-
-    # Progress bar — no time labels, double height
-    if duration_ms and duration_ms > 0:
-        progress = min(progress_ms / duration_ms, 1.0)
-        bar_y = SCREEN_W + 60
-        bar_w = SCREEN_W - 40
-        bar_x = 20
-        bar_h = 8
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(40, 40, 40))
-        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=(30, 215, 96))
+    draw.text(((SCREEN_W - tw) // 2, y_artist), artist_text, fill=(120, 120, 120), font=FONT_LABEL)
 
     return canvas
 
