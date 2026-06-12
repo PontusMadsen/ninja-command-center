@@ -532,7 +532,7 @@ def render_habits(habits, total):
         box_y = y + (text_h - box_size) // 2
 
         if checked:
-            draw.rectangle([margin, box_y, margin + box_size, box_y + box_size], fill=checked_color)
+            draw.rectangle([margin, box_y, margin + box_size, box_y + box_size], fill=fg)
             # Checkmark
             draw.line([(margin + 3, box_y + 7), (margin + 6, box_y + 11)], fill=(0, 0, 0), width=2)
             draw.line([(margin + 6, box_y + 11), (margin + 11, box_y + 3)], fill=(0, 0, 0), width=2)
