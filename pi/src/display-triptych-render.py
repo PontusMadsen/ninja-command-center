@@ -192,6 +192,22 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
 
 # --- Spotify renderer ---
 
+_spotify_icons = {}
+
+def _load_spotify_icons():
+    global _spotify_icons
+    if _spotify_icons:
+        return _spotify_icons
+    icons_dir = os.path.join(os.path.dirname(__file__), '..', 'assets', 'icons')
+    for name in ['spotify-icon', 'ninja-headphones', 'tape', 'audi-bars']:
+        path = os.path.join(icons_dir, f'{name}.png')
+        try:
+            _spotify_icons[name] = Image.open(path).convert('RGBA')
+        except Exception:
+            pass
+    return _spotify_icons
+
+
 def _wrap_text(text, font, max_width, draw):
     """Word-wrap text to fit within max_width."""
     words = text.split(' ')
@@ -213,39 +229,59 @@ def _wrap_text(text, font, max_width, draw):
 def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
     """Generate a 240×320 Spotify now-playing screen."""
     bg = (56, 56, 53)           # #383835
-    text_color = (225, 224, 216) # #e1e0d8
-    dim = (120, 120, 115)
+    fg = (225, 224, 216)        # #e1e0d8
     bar_bg = (80, 80, 75)
 
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), bg)
     draw = ImageDraw.Draw(canvas)
+    icons = _load_spotify_icons()
+    margin = 15
+    spacing = 12
 
-    # ── Header: Now playing ──
-    draw.text((15, 15), '\u266b', fill=text_color, font=FONT_MED)
-    draw.text((42, 19), 'Now playing', fill=text_color, font=FONT_LABEL)
+    # ── Header: spotify icon + "Now playing" ──
+    icon = icons.get('spotify-icon')
+    if icon:
+        canvas.paste(icon, (margin, 14), icon)
+        draw.text((margin + 20, 15), 'Now playing', fill=fg, font=FONT_LABEL)
+    else:
+        draw.text((margin, 15), 'Now playing', fill=fg, font=FONT_LABEL)
 
-    # ── Track name — large, word-wrapped ──
+    # ── Track name — big, word-wrapped ──
     track_text = track or ''
-    lines = _wrap_text(track_text, FONT_MED, SCREEN_W - 30, draw)
-    y = 90
-    for line in lines[:4]:
-        draw.text((15, y), line, fill=text_color, font=FONT_MED)
-        y += 30
+    lines = _wrap_text(track_text, FONT_MED, SCREEN_W - margin * 2, draw)
+    y = 80
+    line_h = 24
+    for line in lines[:5]:
+        draw.text((margin, y), line, fill=fg, font=FONT_MED)
+        y += line_h
 
-    # ── Artist ──
+    # ── Artist — fixed spacing below track ──
+    y += spacing
     artist_text = artist or ''
-    artist_y = max(y + 15, 210)
-    draw.text((15, artist_y), artist_text, fill=text_color, font=FONT_SMALL)
+    draw.text((margin, y), artist_text, fill=fg, font=FONT_SMALL)
 
-    # ── Progress bar ──
+    # ── Progress bar — fixed spacing below artist ──
+    y += 22 + spacing
     if duration_ms and duration_ms > 0:
         progress = min(progress_ms / duration_ms, 1.0)
-        bar_y = artist_y + 30
-        bar_x = 15
-        bar_w = SCREEN_W - 30
+        bar_w = SCREEN_W - margin * 2
         bar_h = 8
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=bar_bg)
-        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=text_color)
+        draw.rectangle([margin, y, margin + bar_w, y + bar_h], fill=bar_bg)
+        draw.rectangle([margin, y, margin + int(bar_w * progress), y + bar_h], fill=fg)
+
+    # ── Bottom icons: ninja-headphones (left), tape + audi-bars (right) ──
+    bottom_y = SCREEN_H - 55
+    ninja = icons.get('ninja-headphones')
+    if ninja:
+        canvas.paste(ninja, (margin, bottom_y), ninja)
+
+    tape = icons.get('tape')
+    bars = icons.get('audi-bars')
+    if tape and bars:
+        canvas.paste(tape, (SCREEN_W - margin - 24 - 6 - 24, bottom_y + 14), tape)
+        canvas.paste(bars, (SCREEN_W - margin - 24, bottom_y + 12), bars)
+    elif tape:
+        canvas.paste(tape, (SCREEN_W - margin - 24, bottom_y + 14), tape)
 
     return canvas
 
