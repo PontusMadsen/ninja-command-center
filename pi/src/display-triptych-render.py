@@ -269,8 +269,8 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     # ── Artist — fixed spacing below track, word-wrapped ──
     y += spacing
     artist_text = artist or ''
-    if len(artist_text) > 19:
-        artist_text = artist_text[:18] + '...'
+    if len(artist_text) > 24:
+        artist_text = artist_text[:23] + '...'
     draw.text((margin, y), artist_text, fill=fg, font=FONT_SMALL)
     y += 28
 
