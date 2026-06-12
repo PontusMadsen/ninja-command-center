@@ -293,10 +293,13 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     tape = icons.get('tape')
     bars = icons.get('audi-bars')
     if tape and bars:
+        # Horizontal align: side by side. Vertical: center both, align bottom to ninja
+        pair_h = max(tape.size[1], bars.size[1])
         bars_x = SCREEN_W - margin - bars.size[0]
         tape_x = bars_x - 6 - tape.size[0]
-        canvas.paste(tape, (tape_x, bottom_baseline - tape.size[1]), tape)
-        canvas.paste(bars, (bars_x, bottom_baseline - bars.size[1]), bars)
+        center_y = bottom_baseline - pair_h // 2
+        canvas.paste(tape, (tape_x, center_y - tape.size[1] // 2), tape)
+        canvas.paste(bars, (bars_x, center_y - bars.size[1] // 2), bars)
     elif tape:
         canvas.paste(tape, (SCREEN_W - margin - tape.size[0], bottom_baseline - tape.size[1]), tape)
 
