@@ -51,6 +51,7 @@ let voiceActive = false;
 let wakeListener = null;
 let idle = null;
 let nudges = null;
+let screenModules = {};
 const conversationLog = [];
 
 const MAX_CONVERSATION_TURNS = 5;
@@ -69,6 +70,10 @@ async function doSingleTurn(text) {
     logger.info({ sentence: sentence.substring(0, 50) }, 'Sentence ready');
     fullText += sentence + ' ';
     sentenceQueue.push(sentence);
+    // Show on right screen
+    if (sendCommand) {
+      sendCommand({ screen: 2, type: 'ninja_says', text: fullText.trim() });
+    }
     if (resolveNext) { resolveNext(); resolveNext = null; }
   };
 
@@ -199,6 +204,11 @@ async function handleVoiceTurn() {
     voiceActive = false;
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
+    // Restore screen 2 to todo
+    if (screenModules.todo) {
+      screenModules.todo.lastJson = '';
+      screenModules.todo.tick();
+    }
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
     // Restart wake word listener with delay to avoid TTS echo
@@ -244,8 +254,8 @@ async function main() {
     clock.start();
 
     const { default: TodoScreen } = await import('./screens/todo.js');
-    const todoScreen = new TodoScreen({ sendCommand, screen: 2 });
-    todoScreen.start();
+    screenModules.todo = new TodoScreen({ sendCommand, screen: 2 });
+    screenModules.todo.start();
   }
 
   // Start nudge scheduler

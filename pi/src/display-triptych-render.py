@@ -337,6 +337,54 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     return canvas
 
 
+# --- Ninja says renderer ---
+
+_ninja_icon = None
+
+def _load_ninja_icon():
+    global _ninja_icon
+    if _ninja_icon:
+        return _ninja_icon
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'icons', 'ninja-face.png')
+    try:
+        _ninja_icon = Image.open(path).convert('RGBA')
+    except Exception:
+        pass
+    return _ninja_icon
+
+
+def render_ninja_says(text):
+    """Generate a 240×320 'Ninja says' screen."""
+    fg = (210, 200, 150)
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    margin = 15
+
+    # Header: ninja icon + "Ninja says!"
+    header_y = 15
+    icon = _load_ninja_icon()
+    label = 'Ninja says!'
+    label_bbox = draw.textbbox((0, 0), label, font=FONT_LABEL)
+    label_h = label_bbox[3] - label_bbox[1]
+    if icon:
+        icon_h = icon.size[1]
+        row_h = max(icon_h, label_h)
+        canvas.paste(icon, (margin, header_y + (row_h - icon_h) // 2), icon)
+        draw.text((margin + icon.size[0] + 6, header_y + (row_h - label_h) // 2), label, fill=fg, font=FONT_LABEL)
+    else:
+        draw.text((margin, header_y), label, fill=fg, font=FONT_LABEL)
+
+    # Text — large, word-wrapped
+    lines = _wrap_text(text or '', FONT_TRACK, SCREEN_W - margin * 2, draw)
+    y = 65
+    line_h = 38
+    for line in lines[:7]:
+        draw.text((margin, y), line, fill=fg, font=FONT_TRACK)
+        y += line_h
+
+    return canvas
+
+
 # --- Todo renderer ---
 
 _todo_icon = None
@@ -516,7 +564,13 @@ def main():
         cmd_type = cmd.get('type', 'image')
 
         try:
-            if cmd_type == 'todo':
+            if cmd_type == 'ninja_says':
+                img = render_ninja_says(cmd.get('text', ''))
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    stop_gif(idx)
+                    screens[idx].push_frame(converters[idx](img))
+            elif cmd_type == 'todo':
                 img = render_todo(
                     cmd.get('tasks', []),
                     cmd.get('total', 0),
