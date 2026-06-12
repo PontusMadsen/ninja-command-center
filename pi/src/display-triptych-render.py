@@ -485,6 +485,78 @@ def render_todo(tasks, total):
     return canvas
 
 
+# --- Habits renderer ---
+
+def render_habits(habits, total):
+    """Generate a 240×320 habits screen."""
+    fg = (210, 200, 150)
+    dim = (120, 115, 85)
+    checked_color = (30, 215, 96)  # green for done
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    margin = 15
+
+    # Header: list icon + "Habits!"
+    header_y = 15
+    icon = _load_todo_icon()
+    label = 'Habits!'
+    label_bbox = draw.textbbox((0, 0), label, font=FONT_LABEL)
+    label_h = label_bbox[3] - label_bbox[1]
+    if icon:
+        icon_h = icon.size[1]
+        row_h = max(icon_h, label_h)
+        canvas.paste(icon, (margin, header_y + (row_h - icon_h) // 2), icon)
+        draw.text((margin + icon.size[0] + 6, header_y + (row_h - label_h) // 2), label, fill=fg, font=FONT_LABEL)
+    else:
+        draw.text((margin, header_y), label, fill=fg, font=FONT_LABEL)
+
+    # Habit list
+    y = 65
+    box_size = 14
+    item_spacing = 16
+    max_items = 5
+    shown = 0
+
+    for habit in habits[:max_items]:
+        name = habit.get('name', '')
+        checked = habit.get('checked', False)
+
+        # Task text
+        text_x = margin + box_size + 10
+        max_w = SCREEN_W - text_x - margin
+        lines = _wrap_text(name, FONT_LABEL, max_w, draw)
+
+        # Checkbox — vertically centered with first line
+        text_bbox = draw.textbbox((0, 0), lines[0], font=FONT_LABEL)
+        text_h = text_bbox[3] - text_bbox[1]
+        box_y = y + (text_h - box_size) // 2
+
+        if checked:
+            draw.rectangle([margin, box_y, margin + box_size, box_y + box_size], fill=checked_color)
+            # Checkmark
+            draw.line([(margin + 3, box_y + 7), (margin + 6, box_y + 11)], fill=(0, 0, 0), width=2)
+            draw.line([(margin + 6, box_y + 11), (margin + 11, box_y + 3)], fill=(0, 0, 0), width=2)
+        else:
+            draw.rectangle([margin, box_y, margin + box_size, box_y + box_size], outline=fg, width=2)
+
+        text_color = dim if checked else fg
+        for line in lines[:2]:
+            draw.text((text_x, y), line, fill=text_color, font=FONT_LABEL)
+            y += 20
+        y += item_spacing
+        shown += 1
+
+    # "+ N more" at bottom right
+    remaining = total - shown
+    if remaining > 0:
+        more_text = f'+ {remaining} more'
+        bbox = draw.textbbox((0, 0), more_text, font=FONT_LABEL)
+        tw = bbox[2] - bbox[0]
+        draw.text((SCREEN_W - margin - tw, SCREEN_H - margin - 24), more_text, fill=dim, font=FONT_LABEL)
+
+    return canvas
+
+
 # --- GIF renderer (background loop) ---
 
 _gif_threads = {}  # screen_idx → thread
@@ -599,6 +671,14 @@ def main():
             elif cmd_type == 'todo':
                 img = render_todo(
                     cmd.get('tasks', []),
+                    cmd.get('total', 0),
+                )
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    screens[idx].push_frame(converters[idx](img))
+            elif cmd_type == 'habits':
+                img = render_habits(
+                    cmd.get('habits', []),
                     cmd.get('total', 0),
                 )
                 idx = int(screen)
