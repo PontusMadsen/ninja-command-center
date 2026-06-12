@@ -192,94 +192,93 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
 
 # --- Spotify renderer ---
 
-import urllib.request
-import io
-import hashlib
+import random
 
-_art_cache = {}  # url → PIL Image
-
-def fetch_album_art(url):
-    """Fetch and cache album art."""
-    if not url:
-        return None
-    if url in _art_cache:
-        return _art_cache[url]
-    try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'NinjaCommandCenter/1.0'})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            img = Image.open(io.BytesIO(resp.read())).convert('RGB')
-            _art_cache[url] = img
-            # Keep cache small
-            if len(_art_cache) > 10:
-                oldest = next(iter(_art_cache))
-                del _art_cache[oldest]
-            return img
-    except Exception:
-        return None
+_spectrum_bars = [0] * 16  # fake spectrum state
+_scroll_offset = 0
 
 
 def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
-    """Generate a 240×320 Spotify now-playing screen."""
+    """Generate a 240×320 retro LCD-style now-playing screen."""
+    global _spectrum_bars, _scroll_offset
+
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
     draw = ImageDraw.Draw(canvas)
 
-    # Album art — full width, square, high quality
-    art_size = SCREEN_W
-    art = fetch_album_art(album_art_url)
-    if art:
-        art_resized = art.resize((art_size, art_size), Image.LANCZOS)
-        canvas.paste(art_resized, (0, 0))
+    color = (30, 215, 96)       # Spotify green
+    dim = (15, 100, 45)         # dimmed green
+    gray = (80, 80, 80)
 
-        # Gradient fade at bottom of art for readability
-        for y in range(40):
-            alpha = int(200 * (y / 40))
-            draw.line([(0, art_size - 40 + y), (SCREEN_W, art_size - 40 + y)],
-                      fill=(0, 0, 0), width=1)
-            # Blend by drawing semi-transparent lines
-            # PIL doesn't support alpha on RGB, so we darken progressively
-            if y > 10:
-                fade = int(255 * ((y - 10) / 30) ** 1.5)
-                draw.line([(0, art_size - 40 + y), (SCREEN_W, art_size - 40 + y)],
-                          fill=(0, 0, 0))
+    # ── Music note icon + "NOW PLAYING" ──
+    draw.text((10, 12), '\u266b', fill=color, font=FONT_MED)
+    draw.text((40, 16), 'NOW PLAYING', fill=gray, font=FONT_LABEL)
 
-        # Re-paste art with manual gradient
-        art_resized2 = art_resized.copy()
-        from PIL import ImageEnhance
-        # Darken bottom portion of art
-        arr = np.array(art_resized2)
-        for y in range(art_size - 50, art_size):
-            factor = 1.0 - ((y - (art_size - 50)) / 50) * 0.85
-            arr[y] = (arr[y] * factor).astype(np.uint8)
-        art_faded = Image.fromarray(arr)
-        canvas.paste(art_faded, (0, 0))
+    # ── Spectrum analyzer bars ──
+    num_bars = 16
+    bar_w = (SCREEN_W - 20) // num_bars
+    max_h = 80
+    base_y = 160
 
-    # Progress bar — overlaid on bottom edge of album art
-    if duration_ms and duration_ms > 0:
-        progress = min(progress_ms / duration_ms, 1.0)
-        bar_y = art_size - 6
-        bar_x = 0
-        bar_w = SCREEN_W
-        bar_h = 6
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(60, 60, 60))
-        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w * progress), bar_y + bar_h], fill=(30, 215, 96))
+    # Animate: smoothly drift toward random targets
+    for i in range(num_bars):
+        target = random.randint(15, max_h)
+        _spectrum_bars[i] = _spectrum_bars[i] + (target - _spectrum_bars[i]) * 0.4
 
-    # Track name — below art
-    y_text = art_size + 12
+    for i in range(num_bars):
+        h = int(_spectrum_bars[i])
+        x = 10 + i * bar_w
+        # Each bar is a stack of small blocks
+        block_h = 4
+        gap = 2
+        blocks = h // (block_h + gap)
+        for b in range(blocks):
+            by = base_y - (b + 1) * (block_h + gap)
+            c = color if b < blocks - 1 else dim
+            draw.rectangle([x, by, x + bar_w - 2, by + block_h], fill=c)
+
+    # ── Track name ── scrolling if long
+    y_track = 180
     track_text = track or ''
-    if len(track_text) > 20:
-        track_text = track_text[:19] + '.'
     bbox = draw.textbbox((0, 0), track_text, font=FONT_SMALL)
     tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, y_text), track_text, fill=(255, 255, 255), font=FONT_SMALL)
+    if tw > SCREEN_W - 20:
+        # Scroll
+        padded = track_text + '    \u2022    ' + track_text
+        _scroll_offset = (_scroll_offset + 2) % (tw + 50)
+        draw.text((10 - _scroll_offset, y_track), padded, fill=(255, 255, 255), font=FONT_SMALL)
+    else:
+        _scroll_offset = 0
+        draw.text(((SCREEN_W - tw) // 2, y_track), track_text, fill=(255, 255, 255), font=FONT_SMALL)
 
-    # Artist
-    y_artist = y_text + 22
+    # ── Artist ──
+    y_artist = 205
     artist_text = artist or ''
-    if len(artist_text) > 24:
-        artist_text = artist_text[:23] + '.'
     bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
     tw = bbox[2] - bbox[0]
-    draw.text(((SCREEN_W - tw) // 2, y_artist), artist_text, fill=(120, 120, 120), font=FONT_LABEL)
+    if tw > SCREEN_W - 20:
+        artist_text = artist_text[:28] + '..'
+        bbox = draw.textbbox((0, 0), artist_text, font=FONT_LABEL)
+        tw = bbox[2] - bbox[0]
+    draw.text(((SCREEN_W - tw) // 2, y_artist), artist_text, fill=gray, font=FONT_LABEL)
+
+    # ── Progress bar ──
+    if duration_ms and duration_ms > 0:
+        progress = min(progress_ms / duration_ms, 1.0)
+        bar_y = 240
+        bar_x = 10
+        bar_w_total = SCREEN_W - 20
+        bar_h = 6
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w_total, bar_y + bar_h], fill=(30, 30, 30))
+        draw.rectangle([bar_x, bar_y, bar_x + int(bar_w_total * progress), bar_y + bar_h], fill=color)
+
+        # Time
+        elapsed = f'{progress_ms // 60000}:{(progress_ms // 1000) % 60:02d}'
+        total = f'{duration_ms // 60000}:{(duration_ms // 1000) % 60:02d}'
+        draw.text((bar_x, bar_y + 12), elapsed, fill=gray, font=FONT_LABEL)
+        bbox = draw.textbbox((0, 0), total, font=FONT_LABEL)
+        draw.text((bar_x + bar_w_total - (bbox[2] - bbox[0]), bar_y + 12), total, fill=gray, font=FONT_LABEL)
+
+    return canvas
 
     return canvas
 
