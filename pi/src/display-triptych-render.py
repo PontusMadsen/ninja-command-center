@@ -378,8 +378,8 @@ def render_todo(tasks, total):
     # Task list
     y = 65
     box_size = 14
-    item_spacing = 8
-    max_items = 4
+    item_spacing = 16
+    max_items = 5
     shown = 0
 
     for task_text in tasks[:max_items]:
