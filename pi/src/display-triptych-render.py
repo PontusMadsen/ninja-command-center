@@ -204,19 +204,13 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     draw.text((margin, 57), time_str, fill=fg, font=FONT_TIME)
 
     # Remote section — bottom, same size for both lines, tight line height
-    bottom_baseline = SCREEN_H - margin
+    # Bottom section — align to same baseline as spotify icons (SCREEN_H - margin - 24)
+    bottom_y = SCREEN_H - margin - 24
     remote_time_str = "it's " + remote_now.strftime('%H:%M')
-    bbox = draw.textbbox((0, 0), remote_time_str, font=FONT_SMALL)
-    time_h = bbox[3] - bbox[1]
-    time_y = bottom_baseline - time_h
+    draw.text((margin, bottom_y), remote_time_str, fill=fg, font=FONT_SMALL)
 
     remote_label_text = f'And in {remote_label}'
-    bbox2 = draw.textbbox((0, 0), remote_label_text, font=FONT_SMALL)
-    label_h = bbox2[3] - bbox2[1]
-    label_y = time_y - label_h - 4
-
-    draw.text((margin, label_y), remote_label_text, fill=fg, font=FONT_SMALL)
-    draw.text((margin, time_y), remote_time_str, fill=fg, font=FONT_SMALL)
+    draw.text((margin, bottom_y - 30), remote_label_text, fill=fg, font=FONT_SMALL)
 
 
 
