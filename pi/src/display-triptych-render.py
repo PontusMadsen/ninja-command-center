@@ -238,13 +238,21 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     margin = 15
     spacing = 12
 
-    # ── Header: spotify icon + "Now playing" ──
+    # ── Header: spotify icon + "Now playing" (vertically centered) ──
+    header_y = 15
     icon = icons.get('spotify-icon')
+    label_text = 'Now playing'
+    label_bbox = draw.textbbox((0, 0), label_text, font=FONT_LABEL)
+    label_h = label_bbox[3] - label_bbox[1]
     if icon:
-        canvas.paste(icon, (margin, 14), icon)
-        draw.text((margin + 20, 15), 'Now playing', fill=fg, font=FONT_LABEL)
+        icon_h = icon.size[1]
+        row_h = max(icon_h, label_h)
+        icon_y = header_y + (row_h - icon_h) // 2
+        label_y = header_y + (row_h - label_h) // 2
+        canvas.paste(icon, (margin, icon_y), icon)
+        draw.text((margin + icon.size[0] + 6, label_y), label_text, fill=fg, font=FONT_LABEL)
     else:
-        draw.text((margin, 15), 'Now playing', fill=fg, font=FONT_LABEL)
+        draw.text((margin, header_y), label_text, fill=fg, font=FONT_LABEL)
 
     # ── Track name — big, word-wrapped ──
     track_text = track or ''
