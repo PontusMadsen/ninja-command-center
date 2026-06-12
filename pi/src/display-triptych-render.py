@@ -337,6 +337,76 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
     return canvas
 
 
+# --- Todo renderer ---
+
+_todo_icon = None
+
+def _load_todo_icon():
+    global _todo_icon
+    if _todo_icon:
+        return _todo_icon
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'icons', 'list.png')
+    try:
+        _todo_icon = Image.open(path).convert('RGBA')
+    except Exception:
+        pass
+    return _todo_icon
+
+
+def render_todo(tasks, total):
+    """Generate a 240×320 todo list screen."""
+    fg = (210, 200, 150)
+    dim = (120, 115, 85)
+    canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), (0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    margin = 15
+
+    # Header: list icon + "Todo!"
+    header_y = 15
+    icon = _load_todo_icon()
+    label = 'Todo!'
+    label_bbox = draw.textbbox((0, 0), label, font=FONT_LABEL)
+    label_h = label_bbox[3] - label_bbox[1]
+    if icon:
+        icon_h = icon.size[1]
+        row_h = max(icon_h, label_h)
+        canvas.paste(icon, (margin, header_y + (row_h - icon_h) // 2), icon)
+        draw.text((margin + icon.size[0] + 6, header_y + (row_h - label_h) // 2), label, fill=fg, font=FONT_LABEL)
+    else:
+        draw.text((margin, header_y), label, fill=fg, font=FONT_LABEL)
+
+    # Task list
+    y = 65
+    box_size = 14
+    item_spacing = 8
+
+    for task_text in tasks:
+        # Checkbox
+        draw.rectangle([margin, y + 2, margin + box_size, y + 2 + box_size], outline=fg, width=2)
+
+        # Task text — wrap if needed
+        text_x = margin + box_size + 10
+        max_w = SCREEN_W - text_x - margin
+        lines = _wrap_text(task_text, FONT_SMALL, max_w, draw)
+        for line in lines[:2]:
+            draw.text((text_x, y), line, fill=fg, font=FONT_SMALL)
+            y += 24
+        y += item_spacing
+
+        if y > SCREEN_H - 60:
+            break
+
+    # "+ N more" at bottom right if there are more
+    shown = len(tasks)
+    if total > shown:
+        more_text = f'+ {total - shown} more'
+        bbox = draw.textbbox((0, 0), more_text, font=FONT_SMALL)
+        tw = bbox[2] - bbox[0]
+        draw.text((SCREEN_W - margin - tw, SCREEN_H - margin - 28), more_text, fill=dim, font=FONT_SMALL)
+
+    return canvas
+
+
 # --- GIF renderer (background loop) ---
 
 _gif_threads = {}  # screen_idx → thread
@@ -442,7 +512,15 @@ def main():
         cmd_type = cmd.get('type', 'image')
 
         try:
-            if cmd_type == 'gif':
+            if cmd_type == 'todo':
+                img = render_todo(
+                    cmd.get('tasks', []),
+                    cmd.get('total', 0),
+                )
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    screens[idx].push_frame(converters[idx](img))
+            elif cmd_type == 'gif':
                 idx = int(screen)
                 if 0 <= idx < len(screens):
                     start_gif(idx, cmd.get('url', ''), screens, converters[idx])
