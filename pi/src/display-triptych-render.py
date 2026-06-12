@@ -142,7 +142,29 @@ except ImportError:
 # Pre-load fonts
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
+CJK_FONT = '/usr/share/fonts/truetype/dotgothic16/DotGothic16-Regular.ttf'
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+
+
+def _draw_text_with_fallback(draw, pos, text, fill, font, cjk_font):
+    """Draw text, using CJK fallback font for characters the primary font can't render."""
+    x, y = pos
+    for char in text:
+        try:
+            bbox = draw.textbbox((0, 0), char, font=font)
+            # If bbox width is 0 or char renders as tofu, use fallback
+            w = bbox[2] - bbox[0]
+            if w == 0 or (ord(char) > 0x2E80 and cjk_font):
+                draw.text((x, y), char, fill=fill, font=cjk_font)
+                bbox = draw.textbbox((0, 0), char, font=cjk_font)
+                x += bbox[2] - bbox[0]
+            else:
+                draw.text((x, y), char, fill=fill, font=font)
+                x += w
+        except Exception:
+            draw.text((x, y), char, fill=fill, font=font)
+            bbox = draw.textbbox((0, 0), char, font=font)
+            x += bbox[2] - bbox[0]
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
     FONT_TIME = ImageFont.truetype(PIXEL_FONT, 168)
@@ -150,6 +172,8 @@ try:
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 24)
+    FONT_CJK_MED = ImageFont.truetype(CJK_FONT, 28)
+    FONT_CJK_SMALL = ImageFont.truetype(CJK_FONT, 22)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
     FONT_TIME = ImageFont.truetype(FALLBACK, 140)
@@ -157,6 +181,8 @@ except Exception:
     FONT_MED = ImageFont.truetype(FALLBACK, 24)
     FONT_SMALL = ImageFont.truetype(FALLBACK, 16)
     FONT_LABEL = ImageFont.truetype(FALLBACK, 12)
+    FONT_CJK_MED = ImageFont.truetype(CJK_FONT, 28) if os.path.exists(CJK_FONT) else FONT_MED
+    FONT_CJK_SMALL = ImageFont.truetype(CJK_FONT, 22) if os.path.exists(CJK_FONT) else FONT_SMALL
 
 
 # Pre-load clock icon
@@ -374,12 +400,12 @@ def render_ninja_says(text):
     else:
         draw.text((margin, header_y), label, fill=fg, font=FONT_LABEL)
 
-    # Text — large, word-wrapped
-    lines = _wrap_text(text or '', FONT_TRACK, SCREEN_W - margin * 2, draw)
+    # Text — medium, word-wrapped, with CJK fallback
+    lines = _wrap_text(text or '', FONT_MED, SCREEN_W - margin * 2, draw)
     y = 65
-    line_h = 38
-    for line in lines[:7]:
-        draw.text((margin, y), line, fill=fg, font=FONT_TRACK)
+    line_h = 30
+    for line in lines[:8]:
+        _draw_text_with_fallback(draw, (margin, y), line, fg, FONT_MED, FONT_CJK_MED)
         y += line_h
 
     return canvas
