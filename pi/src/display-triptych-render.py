@@ -256,11 +256,11 @@ def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms
 
     # ── Track name — big, word-wrapped ──
     track_text = track or ''
-    lines = _wrap_text(track_text, FONT_MED, SCREEN_W - margin * 2, draw)
+    lines = _wrap_text(track_text, FONT_BIG, SCREEN_W - margin * 2, draw)
     y = 80
-    line_h = 24
-    for line in lines[:5]:
-        draw.text((margin, y), line, fill=fg, font=FONT_MED)
+    line_h = 42
+    for line in lines[:4]:
+        draw.text((margin, y), line, fill=fg, font=FONT_BIG)
         y += line_h
 
     # ── Artist — fixed spacing below track, word-wrapped ──
