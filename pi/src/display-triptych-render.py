@@ -232,7 +232,7 @@ def _wrap_text(text, font, max_width, draw):
 def render_spotify(track, artist, album, album_art_url, progress_ms, duration_ms, track_id):
     """Generate a 240×320 Spotify now-playing screen."""
     bg = (0, 0, 0)              # black — backlight makes gray too bright
-    fg = (200, 195, 170)        # warm off-white, nicotine eggshell
+    fg = (210, 200, 150)        # warm off-white, nicotine eggshell
     bar_bg = (80, 80, 75)
 
     canvas = Image.new('RGB', (SCREEN_W, SCREEN_H), bg)
