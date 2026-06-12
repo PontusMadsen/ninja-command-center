@@ -141,11 +141,11 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PIXEL_FONT = os.path.join(_SCRIPT_DIR, '..', 'assets', 'fonts', 'lanapixel.ttf')
 FALLBACK = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 try:
-    FONT_BIG = ImageFont.truetype(PIXEL_FONT, 32)
-    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 21)
-    FONT_MED = ImageFont.truetype(PIXEL_FONT, 14)
-    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 10)
-    FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 8)
+    FONT_BIG = ImageFont.truetype(PIXEL_FONT, 48)
+    FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 32)
+    FONT_MED = ImageFont.truetype(PIXEL_FONT, 20)
+    FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 16)
+    FONT_LABEL = ImageFont.truetype(PIXEL_FONT, 12)
 except Exception:
     FONT_BIG = ImageFont.truetype(FALLBACK, 48)
     FONT_TRACK = ImageFont.truetype(FALLBACK, 30)
