@@ -27,7 +27,7 @@ export async function recordAudio(durationSec = 4) {
         const rms = execSync("sox /tmp/ninja_rec.wav -n stat 2>&1 | grep 'RMS.*amplitude' | awk '{print $NF}'").toString().trim();
         const rmsVal = parseFloat(rms) || 0;
         logger.info({ size: buf.length, rms: rmsVal }, 'Recording done');
-        if (rmsVal < 0.02) {
+        if (rmsVal < 0.04) {
           logger.info('Too quiet, skipping');
           resolve(null);
           return;
