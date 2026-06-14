@@ -167,7 +167,7 @@ def _draw_text_with_fallback(draw, pos, text, fill, font, cjk_font):
             x += bbox[2] - bbox[0]
 try:
     FONT_BIG = ImageFont.truetype(PIXEL_FONT, 64)
-    FONT_TIME = ImageFont.truetype(PIXEL_FONT, 168)
+    FONT_TIME = ImageFont.truetype(PIXEL_FONT, 145)
     FONT_TRACK = ImageFont.truetype(PIXEL_FONT, 50)
     FONT_MED = ImageFont.truetype(PIXEL_FONT, 32)
     FONT_SMALL = ImageFont.truetype(PIXEL_FONT, 32)
@@ -228,9 +228,15 @@ def render_clock(local_tz_name, remote_tz_name, remote_label):
     else:
         draw.text((margin, header_y), date_str, fill=fg, font=FONT_LABEL)
 
-    # Local time — massive, fill width
+    # Local time — massive, auto-fit width
     time_str = now.strftime('%H:%M')
-    draw.text((margin, 57), time_str, fill=fg, font=FONT_TIME)
+    bbox = draw.textbbox((0, 0), time_str, font=FONT_TIME)
+    tw = bbox[2] - bbox[0]
+    # Scale down X if too wide
+    x = margin
+    if tw > SCREEN_W - margin * 2:
+        x = max(0, (SCREEN_W - tw) // 2)
+    draw.text((x, 57), time_str, fill=fg, font=FONT_TIME)
 
     # Remote section — bottom, same size for both lines, tight line height
     # Bottom section — align to same baseline as spotify icons (SCREEN_H - margin - 24)
