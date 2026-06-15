@@ -141,6 +141,7 @@ async function handleVoiceTurn() {
   if (nudges) nudges.pause();
   if (screenModules.htmlRenderer) screenModules.htmlRenderer.pause();
 
+
   try {
     if (wakeListener) wakeListener.stop();
 
@@ -205,12 +206,15 @@ async function handleVoiceTurn() {
     voiceActive = false;
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
-    if (screenModules.htmlRenderer) screenModules.htmlRenderer.resume();
-    // Restore screen 2 to default HTML module
-    if (screenModules.htmlRenderer && screenModules.screen2Default) {
-      setTimeout(() => {
+    // Restore screens
+    if (screenModules.htmlRenderer) {
+      screenModules.htmlRenderer.resume();
+      if (screenModules.screen2Default) {
         screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
-      }, 1000);
+      }
+    } else if (screenModules.spotify) {
+      screenModules.spotify.lastTrackId = null;
+      screenModules.spotify.tick();
     }
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
@@ -250,8 +254,26 @@ async function main() {
   // Start idle behavior loop
   idle.start();
 
-  // Start screen modules AFTER web server (needs Express routes)
-  // Moved to after startWebServer below
+  // Start screen modules (triptych only)
+  if (sendCommand) {
+    try {
+      const { default: HtmlRenderer } = await import('./screens/html-renderer.js');
+      screenModules.htmlRenderer = new HtmlRenderer({ sendCommand });
+      await screenModules.htmlRenderer.start();
+      screenModules.screen2Default = 'spotify';
+      logger.info('HTML renderer ready — waiting for web server to register routes');
+    } catch (e) {
+      logger.warn({ err: e.message }, 'HTML renderer unavailable, using Python screens');
+      const { default: ClockScreen } = await import('./screens/clock.js');
+      const clock = new ClockScreen({ sendCommand, screen: 0 });
+      clock.start();
+
+      const { getNowPlaying } = await import('./integrations/spotify.js');
+      const { default: SpotifyScreen } = await import('./screens/spotify.js');
+      screenModules.spotify = new SpotifyScreen({ sendCommand, screen: 2, getNowPlaying });
+      screenModules.spotify.start();
+    }
+  }
 
   // Start nudge scheduler
   nudges = new NudgeScheduler({
@@ -280,26 +302,13 @@ async function main() {
   // Start web UI
   const app = await startWebServer(ninjaState);
 
-  // Start HTML screen modules (triptych only)
-  if (sendCommand && app) {
-    const { default: HtmlRenderer } = await import('./screens/html-renderer.js');
+  // Start HTML screens now that Express is running
+  if (screenModules.htmlRenderer && app) {
     const { registerScreenRoutes } = await import('./screens/routes.js');
-
-    screenModules.htmlRenderer = new HtmlRenderer({ sendCommand });
     registerScreenRoutes(app, screenModules.htmlRenderer);
-
-    try {
-      await screenModules.htmlRenderer.start();
-      await screenModules.htmlRenderer.setScreen(0, 'clock');
-      await screenModules.htmlRenderer.setScreen(2, 'spotify');
-      screenModules.screen2Default = 'spotify';
-      logger.info('HTML screen modules started');
-    } catch (e) {
-      logger.error({ err: e.message }, 'HTML renderer failed, falling back');
-      const { default: ClockScreen } = await import('./screens/clock.js');
-      const clock = new ClockScreen({ sendCommand, screen: 0 });
-      clock.start();
-    }
+    await screenModules.htmlRenderer.setScreen(0, 'clock');
+    await screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
+    logger.info('HTML screen modules started');
   }
 
   // --- Hub-aware ninja behaviors ---

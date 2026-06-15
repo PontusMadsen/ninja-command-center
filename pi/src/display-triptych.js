@@ -66,6 +66,17 @@ let cmdBusy = false;
 function sendCommand(cmd) {
   return new Promise((resolve) => {
     if (!py || py.killed) { resolve(); return; }
+
+    // Deduplicate: if a screenshot/screen command for the same screen is pending, replace it
+    if (cmd.path && cmd.screen !== undefined && cmd.screen !== 'all') {
+      const idx = cmdQueue.findIndex(q => q.cmd.path && q.cmd.screen === cmd.screen);
+      if (idx !== -1) {
+        cmdQueue[idx].resolve();
+        cmdQueue[idx] = { cmd, resolve };
+        return;
+      }
+    }
+
     cmdQueue.push({ cmd, resolve });
     if (!cmdBusy) flushQueue();
   });
