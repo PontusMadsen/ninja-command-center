@@ -19,6 +19,7 @@ export default class HtmlRenderer {
     this.browser = null;
     this.screens = {};  // screenIdx → { page, moduleId, timer, dataHooks }
     this.running = false;
+    this.paused = false;
   }
 
   async start() {
@@ -105,9 +106,12 @@ export default class HtmlRenderer {
     }
   }
 
+  pause() { this.paused = true; }
+  resume() { this.paused = false; }
+
   async _screenshot(screenIdx) {
     const screen = this.screens[screenIdx];
-    if (!screen?.page || !this.running) return;
+    if (!screen?.page || !this.running || this.paused) return;
 
     try {
       const buf = await screen.page.screenshot({ type: 'png' });

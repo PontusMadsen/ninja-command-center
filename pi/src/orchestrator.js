@@ -72,7 +72,10 @@ async function doSingleTurn(text) {
     sentenceQueue.push(sentence);
     // Show on right screen
     if (screenModules.htmlRenderer) {
-      screenModules.htmlRenderer.setScreen(2, 'ninja-says');
+      const assignments = screenModules.htmlRenderer.getScreenAssignments();
+      if (assignments[2] !== 'ninja-says') {
+        screenModules.htmlRenderer.setScreen(2, 'ninja-says');
+      }
       screenModules.htmlRenderer.updateData(2, { text: fullText.trim() });
     } else if (sendCommand) {
       sendCommand({ screen: 2, type: 'ninja_says', text: fullText.trim() });
@@ -142,6 +145,7 @@ async function handleVoiceTurn() {
     idle.enabled = false;
   }
   if (nudges) nudges.pause();
+  if (screenModules.htmlRenderer) screenModules.htmlRenderer.pause();
 
   try {
     if (wakeListener) wakeListener.stop();
@@ -207,12 +211,10 @@ async function handleVoiceTurn() {
     voiceActive = false;
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
-    // Restore screen 2 to its assigned module
-    if (screenModules.htmlRenderer) {
-      const assignments = screenModules.htmlRenderer.getScreenAssignments();
-      if (assignments[2]) {
-        screenModules.htmlRenderer.setScreen(2, assignments[2]);
-      }
+    if (screenModules.htmlRenderer) screenModules.htmlRenderer.resume();
+    // Restore screen 2 to default module
+    if (screenModules.htmlRenderer && screenModules.screen2Default) {
+      screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
     }
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
@@ -294,6 +296,7 @@ async function main() {
       await screenModules.htmlRenderer.start();
       await screenModules.htmlRenderer.setScreen(0, 'clock');
       await screenModules.htmlRenderer.setScreen(2, 'spotify');
+      screenModules.screen2Default = 'spotify';
       logger.info('HTML screen modules started');
     } catch (e) {
       logger.error({ err: e.message }, 'HTML renderer failed, falling back');
