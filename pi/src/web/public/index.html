@@ -107,13 +107,13 @@ body{
 /* screens */
 .screen-slot{text-align:center}
 .slot-label{font:600 9px var(--mono);letter-spacing:.1em;color:var(--ink-3);margin-bottom:6px;text-transform:uppercase}
-.slot-preview{aspect-ratio:3/4;border:2px dashed var(--line-2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font:400 11px var(--mono);color:var(--ink-3);transition:.14s;cursor:pointer;background:var(--surface-2);position:relative;overflow:hidden}
+.slot-preview{aspect-ratio:3/4;border:2px dashed var(--line-2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font:400 11px var(--mono);color:var(--ink-3);cursor:pointer;background:var(--surface-2);position:relative;overflow:hidden}
 .slot-preview:hover{border-color:var(--ink-3)}
 .slot-preview.has-module{border-style:solid;border-color:var(--line-2)}
 .slot-preview.slot-locked{border-style:solid;border-color:var(--line);cursor:default;background:var(--surface-3)}
 .slot-empty{font-size:10px;opacity:.5}
 .slot-module-name{font:500 10px var(--mono);position:absolute;bottom:0;left:0;right:0;padding:4px;background:rgba(0,0,0,.06)}
-.module-card{border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;transition:.14s;display:flex;flex-direction:column;gap:4px}
+.module-card{border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
 .module-card:hover{border-color:var(--ink-3);background:var(--surface-2)}
 .module-card .m-name{font:600 12px 'Archivo',sans-serif}
 .module-card .m-cat{font:400 10px var(--mono);color:var(--ink-3);text-transform:uppercase}
@@ -434,9 +434,7 @@ body{
               <textarea id="editor-js" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
             </div>
           </div>
-          <div id="editor-preview-frame" style="display:none;border:1px solid var(--line-2);border-radius:var(--r-sm);overflow:hidden;margin-top:8px">
-            <iframe id="editor-iframe" style="width:240px;height:320px;border:none;transform-origin:top left;transform:scale(0.75)" sandbox="allow-scripts"></iframe>
-          </div>
+          <div id="editor-preview-frame" style="display:none;border:1px solid var(--line-2);border-radius:var(--r-sm);overflow:hidden;margin-top:8px"></div>
         </div>
       </div>
 
@@ -1056,23 +1054,23 @@ function renderModuleList(){
 // Assign module to screen
 $('#module-list').on('click','.m-btn[data-assign]',async function(e){
   e.stopPropagation();
-  const modId=$(this).closest('.module-card').data('id');
-  const screen=$(this).data('assign');
-  await post('screens/'+screen,{moduleId:modId});
+  const modId=$(this).closest('.module-card').attr('data-id');
+  const screen=$(this).attr('data-assign');
+  await post('screens/'+screen,{moduleId:String(modId)});
   await loadScreens();
 });
 
 // Edit module
 $('#module-list').on('click','.m-btn[data-edit]',function(e){
   e.stopPropagation();
-  const modId=$(this).closest('.module-card').data('id');
+  const modId=$(this).closest('.module-card').attr('data-id');
   openEditor(modId);
 });
 
 // Delete module
 $('#module-list').on('click','.m-btn[data-del]',async function(e){
   e.stopPropagation();
-  const modId=$(this).closest('.module-card').data('id');
+  const modId=$(this).closest('.module-card').attr('data-id');
   if(!confirm('Delete this module?'))return;
   await del('modules/'+modId);
   await loadScreens();
@@ -1120,9 +1118,7 @@ $('#editor-close-btn').on('click',function(){
 
 $('#editor-preview-btn').on('click',function(){
   const frame=$('#editor-preview-frame');
-  if(frame.is(':visible')){frame.hide();return;}
-  frame.show();
-  const iframe=$('#editor-iframe')[0];
+  if(frame.is(':visible')){frame.empty().hide();return;}
   const css=$('#editor-css').val();
   const body=$('#editor-html').val();
   const js=$('#editor-js').val();
@@ -1135,7 +1131,7 @@ $('#editor-preview-btn').on('click',function(){
     +body
     +'<scr'+'ipt>'+js+'</scr'+'ipt>'
     +'</body></html>';
-  iframe.srcdoc=html;
+  frame.html('<iframe style="width:240px;height:320px;border:none;transform-origin:top left;transform:scale(0.75)" sandbox="allow-scripts" srcdoc="'+html.replace(/"/g,'&quot;')+'"></iframe>').show();
 });
 
 // === PATREON ===
