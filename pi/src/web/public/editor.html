@@ -199,6 +199,28 @@ const modId = new URLSearchParams(location.search).get('id');
 if (!modId) { location.href = '/'; }
 
 let module = null;
+let previewData = {};
+
+async function loadPreviewData() {
+  try {
+    const [np, tasks, habits] = await Promise.all([
+      fetch('/api/spotify/now-playing').then(r => r.json()).catch(() => null),
+      fetch('/api/tasks?date=' + new Date().toISOString().slice(0,10)).then(r => r.json()).catch(() => ({tasks:[]})),
+      fetch('/api/habits?date=' + new Date().toISOString().slice(0,10)).then(r => r.json()).catch(() => ({habits:[]})),
+    ]);
+    previewData = {
+      local_tz: 'Asia/Tokyo',
+      remote_tz: 'Europe/Stockholm',
+      remote_label: 'Sweden',
+      tenor_key: 'LIVDSRZULELA',
+      gif_tag: 'cat pixelart',
+      now_playing: np,
+      tasks: tasks.tasks || [],
+      habits: habits.habits || [],
+      text: 'Preview text from ninja!',
+    };
+  } catch {}
+}
 
 async function load() {
   const res = await fetch('/api/modules/' + modId);
@@ -210,6 +232,7 @@ async function load() {
   document.getElementById('code-html').value = module.html || '';
   document.getElementById('code-css').value = module.css || '';
   document.getElementById('code-js').value = module.js || '';
+  await loadPreviewData();
   updatePreview();
 }
 
@@ -224,7 +247,7 @@ function updatePreview() {
     + 'body{width:240px;height:320px;overflow:hidden;background:#000;font-family:LanaPixel,monospace;color:#d2cba6}'
     + '@font-face{font-family:LanaPixel;src:url(/fonts/lanapixel.ttf) format(truetype)}'
     + css + '</style></head><body>'
-    + '<scr' + 'ipt>window.NINJA_DATA={}</scr' + 'ipt>'
+    + '<scr' + 'ipt>window.NINJA_DATA=' + JSON.stringify(previewData) + '</scr' + 'ipt>'
     + body
     + '<scr' + 'ipt>' + js + '</scr' + 'ipt>'
     + '</body></html>';

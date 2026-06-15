@@ -35,7 +35,7 @@ export function registerScreenRoutes(app, htmlRenderer) {
   seedDefaults();
 
   // --- Serve module as HTML page ---
-  app.get('/screen/:id', (req, res) => {
+  app.get('/screen/:id', async (req, res) => {
     const mod = getModule(req.params.id);
     if (!mod) return res.status(404).send('Module not found');
 
@@ -45,6 +45,7 @@ export function registerScreenRoutes(app, htmlRenderer) {
       remote_label: process.env.REMOTE_LABEL || 'Sweden',
       tenor_key: process.env.TENOR_API_KEY || 'LIVDSRZULELA',
       gif_tag: process.env.GIF_TAG || 'cat pixelart',
+      base_url: `http://localhost:${process.env.WEB_PORT || 8888}`,
     };
 
     res.send(renderModuleHTML(mod, dataHooks));
