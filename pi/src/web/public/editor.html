@@ -66,23 +66,31 @@ body{
 
 /* Code tabs */
 .code-panel{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
   background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);
-  overflow:hidden;display:flex;flex-direction:column;
+  overflow:hidden;
 }
-.code-tabs{
-  display:flex;border-bottom:1px solid var(--line);background:var(--surface-2);
+.code-col{
+  display:flex;flex-direction:column;
 }
-.code-tab{
-  font:600 11px var(--mono);padding:10px 16px;border:none;background:none;
-  cursor:pointer;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;
-  border-bottom:2px solid transparent;
+.code-col:first-child{border-right:1px solid var(--line)}
+.code-col-label{
+  font:600 11px var(--mono);padding:10px 12px;color:var(--ink-3);
+  letter-spacing:.04em;text-transform:uppercase;background:var(--surface-2);
+  border-bottom:1px solid var(--line);
 }
-.code-tab:hover{color:var(--ink-2)}
-.code-tab.active{color:var(--ink);border-bottom-color:var(--ink)}
-.code-area{flex:1;display:none;position:relative}
-.code-area.active{display:block}
-.code-area textarea{
-  width:100%;height:100%;min-height:420px;padding:12px;border:none;resize:none;
+.code-col textarea{
+  width:100%;flex:1;min-height:360px;padding:12px;border:none;resize:none;
+  font:400 12px/1.6 var(--mono);background:var(--surface);color:var(--ink);
+  outline:none;
+}
+.js-panel{
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);
+  overflow:hidden;margin-top:12px;
+}
+.js-panel .code-col-label{background:var(--surface-2);border-bottom:1px solid var(--line)}
+.js-panel textarea{
+  width:100%;min-height:140px;padding:12px;border:none;resize:vertical;
   font:400 12px/1.6 var(--mono);background:var(--surface);color:var(--ink);
   outline:none;
 }
@@ -143,20 +151,18 @@ body{
 
   <div class="editor-main">
     <div class="code-panel">
-      <div class="code-tabs">
-        <button class="code-tab active" data-tab="html">HTML</button>
-        <button class="code-tab" data-tab="css">CSS</button>
-        <button class="code-tab" data-tab="js">JavaScript</button>
-      </div>
-      <div class="code-area active" data-area="html">
+      <div class="code-col">
+        <div class="code-col-label">HTML</div>
         <textarea id="code-html" spellcheck="false"></textarea>
       </div>
-      <div class="code-area" data-area="css">
+      <div class="code-col">
+        <div class="code-col-label">CSS</div>
         <textarea id="code-css" spellcheck="false"></textarea>
       </div>
-      <div class="code-area" data-area="js">
-        <textarea id="code-js" spellcheck="false"></textarea>
-      </div>
+    </div>
+    <div class="js-panel">
+      <div class="code-col-label">JavaScript</div>
+      <textarea id="code-js" spellcheck="false"></textarea>
     </div>
 
     <div class="preview-panel">
