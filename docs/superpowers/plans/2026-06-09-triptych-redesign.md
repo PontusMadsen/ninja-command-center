@@ -1,6 +1,6 @@
 # Ninja Command Center — Triptych Redesign
 
-> **Status:** Planning / pre-hardware. Displays ordered, arriving soon.
+> **Status:** Implemented. Hardware wired, software running.
 
 **Date:** 2026-06-09  
 **Replaces:** ESP32-based multi-board architecture  
