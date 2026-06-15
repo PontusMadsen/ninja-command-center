@@ -348,7 +348,7 @@ update();`,
     icon: '',
     html: `
 <div class="gif-screen">
-  <img id="gif" src="" style="width:240px;height:320px;object-fit:contain;">
+  <img id="gif" src="">
 </div>`,
     css: `
 .gif-screen {
@@ -358,6 +358,12 @@ update();`,
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.gif-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
 }`,
     js: `
 const tag = window.NINJA_DATA?.gif_tag || 'cat pixelart';
