@@ -1047,14 +1047,16 @@ $('#module-list').on('click','.m-btn[data-del]',async function(e){
   await loadScreens();
 });
 
-// New module
+// New module — create and open editor
 $('#new-module-btn').on('click',async function(){
   const mod=await post('modules',{name:'My Module',html:'<div>Hello!</div>',css:'div{color:#d2cba6;padding:15px;}',js:''});
   await loadScreens();
-  openEditor(mod.module.id);
+  window.open('/editor.html?id='+mod.module.id,'editor_'+mod.module.id,'width=1200,height=700');
 });
 
-// Editor
+// === PATREON ===
+async function loadPatreon(){
+  try{
     const p=await api('patreon/latest');
     if(!p)return;
     $('#patreonTitle').text(p.title);
