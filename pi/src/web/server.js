@@ -828,4 +828,6 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
   app.listen(PORT, '0.0.0.0', () => {
     logger.info({ port: PORT }, 'Web UI running');
   });
+
+  return app;
 }
