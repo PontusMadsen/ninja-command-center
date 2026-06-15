@@ -52,7 +52,7 @@ export function registerScreenRoutes(app, htmlRenderer) {
 
   // --- Module CRUD API ---
   app.get('/api/modules', (req, res) => {
-    res.json({ modules: getModules() });
+    res.json({ modules: getModules().filter(m => m.category !== 'system') });
   });
 
   app.get('/api/modules/:id', (req, res) => {

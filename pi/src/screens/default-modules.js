@@ -300,48 +300,6 @@ setInterval(update, 10000);`,
   },
 
   {
-    id: 'ninja-says',
-    name: 'Ninja Says',
-    category: 'standard',
-    icon: 'ninja-face',
-    html: `
-<div class="ninja-says-screen">
-  <div class="header">
-    <img src="/icons/ninja-face.png" class="icon">
-    <span class="label">Ninja says!</span>
-  </div>
-  <div class="text" id="text"></div>
-</div>`,
-    css: `
-.ninja-says-screen {
-  height: 320px;
-  display: flex;
-  flex-direction: column;
-  padding: 15px;
-}
-.header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.header .icon { width: 16px; height: 18px; }
-.header .label { font-size: 24px; }
-.text {
-  font-size: 32px;
-  margin-top: 25px;
-  line-height: 1.3;
-  word-wrap: break-word;
-}`,
-    js: `
-function update() {
-  const text = window.NINJA_DATA?.text || '';
-  document.getElementById('text').textContent = text;
-}
-update();
-setInterval(update, 200);`,
-  },
-
-  {
     id: 'gif',
     name: 'GIF',
     category: 'standard',
