@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module Editor — Ninja Command Center</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#e8e8e6;--surface:#ffffff;--surface-2:#fafafa;--surface-3:#f1f1ef;
+  --ink:#161616;--ink-2:#5e5e5c;--ink-3:#9b9b98;
+  --line:#e7e7e4;--line-2:#d6d6d2;
+  --r:8px;--r-sm:6px;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Archivo',sans-serif;
+  background:var(--bg);
+  background-image:radial-gradient(circle,rgba(0,0,0,0.055) 0.6px,transparent 0.6px);
+  background-size:22px 22px;
+  color:var(--ink);font-size:13px;
+  -webkit-font-smoothing:antialiased;
+}
+
+.editor-app{
+  max-width:1200px;margin:20px auto;padding:0 20px;
+}
+
+/* Header */
+.editor-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.editor-header-left{display:flex;align-items:center;gap:12px}
+.editor-header-left .back{
+  font:500 12px var(--mono);color:var(--ink-2);text-decoration:none;
+  padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);
+}
+.editor-header-left .back:hover{background:var(--surface)}
+.editor-header-left h1{font:600 18px 'Archivo',sans-serif}
+.editor-header-right{display:flex;gap:8px}
+.btn{
+  font:600 12px var(--mono);padding:7px 16px;border-radius:var(--r-sm);
+  border:1px solid var(--line-2);background:none;cursor:pointer;
+}
+.btn:hover{background:var(--surface-3)}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{opacity:.85}
+
+/* Name input */
+.name-row{
+  margin-bottom:12px;
+}
+.name-row input{
+  font:500 14px 'Archivo',sans-serif;
+  padding:8px 12px;border:1px solid var(--line-2);border-radius:var(--r-sm);
+  width:300px;
+}
+
+/* Main layout */
+.editor-main{
+  display:grid;grid-template-columns:1fr 280px;gap:16px;
+}
+
+/* Code tabs */
+.code-panel{
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);
+  overflow:hidden;display:flex;flex-direction:column;
+}
+.code-tabs{
+  display:flex;border-bottom:1px solid var(--line);background:var(--surface-2);
+}
+.code-tab{
+  font:600 11px var(--mono);padding:10px 16px;border:none;background:none;
+  cursor:pointer;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;
+  border-bottom:2px solid transparent;
+}
+.code-tab:hover{color:var(--ink-2)}
+.code-tab.active{color:var(--ink);border-bottom-color:var(--ink)}
+.code-area{flex:1;display:none;position:relative}
+.code-area.active{display:block}
+.code-area textarea{
+  width:100%;height:100%;min-height:420px;padding:12px;border:none;resize:none;
+  font:400 12px/1.6 var(--mono);background:var(--surface);color:var(--ink);
+  outline:none;
+}
+
+/* Preview panel */
+.preview-panel{
+  display:flex;flex-direction:column;gap:12px;
+}
+.preview-card{
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);
+  overflow:hidden;
+}
+.preview-label{
+  font:600 9px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);padding:8px 12px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);
+}
+.preview-frame{
+  width:240px;height:320px;margin:0 auto;display:block;
+}
+.preview-frame iframe{
+  width:240px;height:320px;border:none;display:block;
+}
+
+/* Variables info */
+.vars-card{
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r);
+  padding:12px;
+}
+.vars-card h4{font:600 11px var(--mono);color:var(--ink-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
+.vars-card code{
+  display:block;font:400 11px var(--mono);color:var(--ink-3);margin-bottom:4px;
+}
+
+/* Status */
+.status{font:400 11px var(--mono);color:var(--ink-3);padding:8px 0}
+</style>
+</head>
+<body>
+
+<div class="editor-app">
+  <div class="editor-header">
+    <div class="editor-header-left">
+      <a href="/" class="back">← Back</a>
+      <h1 id="editor-title">Edit Module</h1>
+    </div>
+    <div class="editor-header-right">
+      <button class="btn" id="btn-preview">Preview</button>
+      <button class="btn" id="btn-push">Push to Screen</button>
+      <button class="btn btn-primary" id="btn-save">Save (⌘S)</button>
+    </div>
+  </div>
+
+  <div class="name-row">
+    <input id="mod-name" placeholder="Module name">
+  </div>
+
+  <div class="editor-main">
+    <div class="code-panel">
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="html">HTML</button>
+        <button class="code-tab" data-tab="css">CSS</button>
+        <button class="code-tab" data-tab="js">JavaScript</button>
+      </div>
+      <div class="code-area active" data-area="html">
+        <textarea id="code-html" spellcheck="false"></textarea>
+      </div>
+      <div class="code-area" data-area="css">
+        <textarea id="code-css" spellcheck="false"></textarea>
+      </div>
+      <div class="code-area" data-area="js">
+        <textarea id="code-js" spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <div class="preview-panel">
+      <div class="preview-card">
+        <div class="preview-label">Live Preview (240×320)</div>
+        <div class="preview-frame" id="preview-frame"></div>
+      </div>
+
+      <div class="vars-card">
+        <h4>{ } Available Data</h4>
+        <code>window.NINJA_DATA.local_tz</code>
+        <code>window.NINJA_DATA.remote_tz</code>
+        <code>window.NINJA_DATA.remote_label</code>
+        <code>window.NINJA_DATA.tenor_key</code>
+        <code>window.NINJA_DATA.gif_tag</code>
+        <code>window.NINJA_DATA.text</code>
+        <p style="margin-top:8px;font:400 10px var(--mono);color:var(--ink-3)">
+          Use <b>fetch('/api/...')</b> for tasks, habits, spotify, weather etc.
+        </p>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const modId = new URLSearchParams(location.search).get('id');
+if (!modId) { location.href = '/'; }
+
+let module = null;
+
+async function load() {
+  const res = await fetch('/api/modules/' + modId);
+  if (!res.ok) { alert('Module not found'); location.href = '/'; return; }
+  module = await res.json();
+  document.getElementById('editor-title').textContent = 'Edit: ' + module.name;
+  document.title = module.name + ' — Module Editor';
+  document.getElementById('mod-name').value = module.name;
+  document.getElementById('code-html').value = module.html || '';
+  document.getElementById('code-css').value = module.css || '';
+  document.getElementById('code-js').value = module.js || '';
+  updatePreview();
+}
+
+// Tabs
+document.querySelectorAll('.code-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.code-area').forEach(a => a.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelector('.code-area[data-area="' + tab.dataset.tab + '"]').classList.add('active');
+  });
+});
+
+// Live preview
+function updatePreview() {
+  const css = document.getElementById('code-css').value;
+  const body = document.getElementById('code-html').value;
+  const js = document.getElementById('code-js').value;
+  const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+    + '*{margin:0;padding:0;box-sizing:border-box}'
+    + 'body{width:240px;height:320px;overflow:hidden;background:#000;font-family:LanaPixel,monospace;color:#d2cba6}'
+    + '@font-face{font-family:LanaPixel;src:url(/fonts/lanapixel.ttf) format(truetype)}'
+    + css + '</style></head><body>'
+    + '<scr' + 'ipt>window.NINJA_DATA={}</scr' + 'ipt>'
+    + body
+    + '<scr' + 'ipt>' + js + '</scr' + 'ipt>'
+    + '</body></html>';
+
+  const frame = document.getElementById('preview-frame');
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:240px;height:320px;border:none;display:block';
+  iframe.sandbox = 'allow-scripts';
+  iframe.srcdoc = html;
+  frame.innerHTML = '';
+  frame.appendChild(iframe);
+}
+
+// Auto-preview on typing (debounced)
+let previewTimer = null;
+['code-html', 'code-css', 'code-js'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, 500);
+  });
+});
+
+// Preview button
+document.getElementById('btn-preview').addEventListener('click', updatePreview);
+
+// Save
+async function save() {
+  const btn = document.getElementById('btn-save');
+  btn.textContent = 'Saving...';
+  await fetch('/api/modules/' + modId, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: document.getElementById('mod-name').value,
+      html: document.getElementById('code-html').value,
+      css: document.getElementById('code-css').value,
+      js: document.getElementById('code-js').value,
+    })
+  });
+  btn.textContent = 'Saved ✓';
+  document.getElementById('status').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+  setTimeout(() => { btn.textContent = 'Save (⌘S)'; }, 1500);
+}
+
+document.getElementById('btn-save').addEventListener('click', save);
+
+// Cmd+S
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    save();
+  }
+});
+
+// Push to screen
+document.getElementById('btn-push').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-push');
+  const screenRes = await fetch('/api/screens');
+  const screens = await screenRes.json();
+  const assignments = screens.screens || {};
+
+  // Find which screen this module is on, or ask
+  let screen = null;
+  for (const [idx, mid] of Object.entries(assignments)) {
+    if (mid === modId) { screen = idx; break; }
+  }
+  if (screen === null) {
+    const choice = prompt('Push to which screen? (0=Left, 2=Right)');
+    if (choice !== '0' && choice !== '2') return;
+    screen = choice;
+  }
+
+  btn.textContent = 'Pushing...';
+  await save();
+  await fetch('/api/screens/' + screen, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ moduleId: modId })
+  });
+  btn.textContent = 'Pushed ✓';
+  setTimeout(() => { btn.textContent = 'Push to Screen'; }, 2000);
+});
+
+// Tab key inserts spaces in textareas
+document.querySelectorAll('textarea').forEach(ta => {
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = ta.selectionStart;
+      ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(ta.selectionEnd);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+    }
+  });
+});
+
+load();
+</script>
+</body>
+</html>

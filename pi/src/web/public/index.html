@@ -406,36 +406,7 @@ body{
           <div id="module-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
         </div>
 
-        <!-- Module editor (hidden by default) -->
-        <div class="card" id="module-editor" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <h3 id="editor-title">Edit Module</h3>
-            <div style="display:flex;gap:6px">
-              <button id="editor-preview-btn" style="font:500 11px var(--mono);background:none;border:1px solid var(--line-2);padding:5px 10px;border-radius:var(--r-sm);cursor:pointer">Preview</button>
-              <button id="editor-save-btn" style="font:600 11px var(--mono);background:var(--ink);color:#fff;border:none;padding:5px 12px;border-radius:var(--r-sm);cursor:pointer">Save</button>
-              <button id="editor-close-btn" style="font:500 11px var(--mono);background:none;border:1px solid var(--line-2);padding:5px 10px;border-radius:var(--r-sm);cursor:pointer">Close</button>
-            </div>
-          </div>
-          <div style="margin-bottom:8px">
-            <label style="font:500 11px var(--mono);color:var(--ink-2)">Name</label>
-            <input id="editor-name" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 12px var(--mono)">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-            <div>
-              <label style="font:500 11px var(--mono);color:var(--ink-2)">HTML</label>
-              <textarea id="editor-html" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
-            </div>
-            <div>
-              <label style="font:500 11px var(--mono);color:var(--ink-2)">CSS</label>
-              <textarea id="editor-css" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
-            </div>
-            <div>
-              <label style="font:500 11px var(--mono);color:var(--ink-2)">JavaScript</label>
-              <textarea id="editor-js" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
-            </div>
-          </div>
-          <div id="editor-preview-frame" style="display:none;border:1px solid var(--line-2);border-radius:var(--r-sm);overflow:hidden;margin-top:8px"></div>
-        </div>
+
       </div>
 
       <!-- SETTINGS -->
@@ -1009,7 +980,7 @@ async function restartService(){if(!confirm('Restart ninja service?'))return;awa
 // === SCREENS ===
 let screenModules=[];
 let screenAssignments={};
-let editingModuleId=null;
+
 
 async function loadScreens(){
   const[mods,scr]=await Promise.all([api('modules'),api('screens')]);
@@ -1084,59 +1055,6 @@ $('#new-module-btn').on('click',async function(){
 });
 
 // Editor
-function openEditor(modId){
-  const mod=screenModules.find(m=>m.id===modId);
-  if(!mod)return;
-  editingModuleId=modId;
-  $('#editor-title').text('Edit: '+mod.name);
-  $('#editor-name').val(mod.name);
-  $('#editor-html').val(mod.html||'');
-  $('#editor-css').val(mod.css||'');
-  $('#editor-js').val(mod.js||'');
-  $('#module-editor').show();
-  $('#editor-preview-frame').hide();
-}
-
-$('#editor-save-btn').on('click',async function(){
-  if(!editingModuleId)return;
-  $(this).text('Saving...');
-  await put('modules/'+editingModuleId,{
-    name:$('#editor-name').val(),
-    html:$('#editor-html').val(),
-    css:$('#editor-css').val(),
-    js:$('#editor-js').val(),
-  });
-  $(this).text('Saved ✓');
-  setTimeout(()=>$(this).text('Save'),1500);
-  await loadScreens();
-});
-
-$('#editor-close-btn').on('click',function(){
-  editingModuleId=null;
-  $('#module-editor').hide();
-});
-
-$('#editor-preview-btn').on('click',function(){
-  const frame=$('#editor-preview-frame');
-  if(frame.is(':visible')){frame.empty().hide();return;}
-  const css=$('#editor-css').val();
-  const body=$('#editor-html').val();
-  const js=$('#editor-js').val();
-  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
-    +'*{margin:0;padding:0;box-sizing:border-box}'
-    +'body{width:240px;height:320px;overflow:hidden;background:#000;font-family:LanaPixel,monospace;color:#d2cba6}'
-    +'@font-face{font-family:LanaPixel;src:url(/fonts/lanapixel.ttf) format(truetype)}'
-    +css+'</style></head><body>'
-    +'<scr'+'ipt>window.NINJA_DATA={}</scr'+'ipt>'
-    +body
-    +'<scr'+'ipt>'+js+'</scr'+'ipt>'
-    +'</body></html>';
-  frame.html('<iframe style="width:240px;height:320px;border:none;transform-origin:top left;transform:scale(0.75)" sandbox="allow-scripts" srcdoc="'+html.replace(/"/g,'&quot;')+'"></iframe>').show();
-});
-
-// === PATREON ===
-async function loadPatreon(){
-  try{
     const p=await api('patreon/latest');
     if(!p)return;
     $('#patreonTitle').text(p.title);
