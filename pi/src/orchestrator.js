@@ -70,14 +70,8 @@ async function doSingleTurn(text) {
     logger.info({ sentence: sentence.substring(0, 50) }, 'Sentence ready');
     fullText += sentence + ' ';
     sentenceQueue.push(sentence);
-    // Show on right screen
-    if (screenModules.htmlRenderer) {
-      const assignments = screenModules.htmlRenderer.getScreenAssignments();
-      if (assignments[2] !== 'ninja-says') {
-        screenModules.htmlRenderer.setScreen(2, 'ninja-says');
-      }
-      screenModules.htmlRenderer.updateData(2, { text: fullText.trim() });
-    } else if (sendCommand) {
+    // Show ninja speech on right screen (via Python renderer — reliable during voice turn)
+    if (sendCommand) {
       sendCommand({ screen: 2, type: 'ninja_says', text: fullText.trim() });
     }
     if (resolveNext) { resolveNext(); resolveNext = null; }
@@ -212,9 +206,11 @@ async function handleVoiceTurn() {
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
     if (screenModules.htmlRenderer) screenModules.htmlRenderer.resume();
-    // Restore screen 2 to default module
+    // Restore screen 2 to default HTML module
     if (screenModules.htmlRenderer && screenModules.screen2Default) {
-      screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
+      setTimeout(() => {
+        screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
+      }, 1000);
     }
     // Allow BT audio to resume
     try { execSync('rm -f /tmp/ninja-voice-active'); } catch {}
