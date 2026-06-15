@@ -60,6 +60,7 @@ export default class HtmlRenderer {
 
     const page = await this.browser.newPage({
       viewport: { width: 240, height: 320 },
+      deviceScaleFactor: 1,
     });
 
     const url = `${BASE_URL}/screen/${moduleId}`;

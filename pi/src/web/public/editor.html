@@ -101,10 +101,11 @@ body{
   background:var(--surface-2);
 }
 .preview-frame{
-  width:240px;height:320px;margin:0 auto;display:block;
+  width:240px;height:320px;margin:0 auto;display:block;overflow:hidden;
 }
 .preview-frame iframe{
-  width:240px;height:320px;border:none;display:block;
+  width:480px;height:640px;border:none;display:block;
+  transform:scale(0.5);transform-origin:top left;
 }
 
 /* Variables info */
@@ -201,15 +202,6 @@ async function load() {
   updatePreview();
 }
 
-// Tabs
-document.querySelectorAll('.code-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.code-area').forEach(a => a.classList.remove('active'));
-    tab.classList.add('active');
-    document.querySelector('.code-area[data-area="' + tab.dataset.tab + '"]').classList.add('active');
-  });
-});
 
 // Live preview
 function updatePreview() {
@@ -228,7 +220,7 @@ function updatePreview() {
 
   const frame = document.getElementById('preview-frame');
   const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'width:240px;height:320px;border:none;display:block';
+  iframe.style.cssText = 'width:480px;height:640px;border:none;display:block;transform:scale(0.5);transform-origin:top left';
   iframe.sandbox = 'allow-scripts';
   iframe.srcdoc = html;
   frame.innerHTML = '';
