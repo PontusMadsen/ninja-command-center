@@ -104,6 +104,26 @@ body{
 .empty{text-align:center;padding:48px 0;color:var(--ink-3);font-size:12px}
 .empty .big{font-size:26px;margin-bottom:8px}
 
+/* screens */
+.screen-slot{text-align:center}
+.slot-label{font:600 9px var(--mono);letter-spacing:.1em;color:var(--ink-3);margin-bottom:6px;text-transform:uppercase}
+.slot-preview{aspect-ratio:3/4;border:2px dashed var(--line-2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font:400 11px var(--mono);color:var(--ink-3);transition:.14s;cursor:pointer;background:var(--surface-2);position:relative;overflow:hidden}
+.slot-preview:hover{border-color:var(--ink-3)}
+.slot-preview.has-module{border-style:solid;border-color:var(--line-2)}
+.slot-preview.slot-locked{border-style:solid;border-color:var(--line);cursor:default;background:var(--surface-3)}
+.slot-empty{font-size:10px;opacity:.5}
+.slot-module-name{font:500 10px var(--mono);position:absolute;bottom:0;left:0;right:0;padding:4px;background:rgba(0,0,0,.06)}
+.module-card{border:1px solid var(--line);border-radius:var(--r);padding:10px;cursor:pointer;transition:.14s;display:flex;flex-direction:column;gap:4px}
+.module-card:hover{border-color:var(--ink-3);background:var(--surface-2)}
+.module-card .m-name{font:600 12px 'Archivo',sans-serif}
+.module-card .m-cat{font:400 10px var(--mono);color:var(--ink-3);text-transform:uppercase}
+.module-card .m-actions{display:flex;gap:4px;margin-top:4px}
+.module-card .m-btn{font:500 10px var(--mono);padding:3px 8px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:none;cursor:pointer;transition:.12s}
+.module-card .m-btn:hover{background:var(--surface-3)}
+.module-card .m-btn.assign{background:var(--ink);color:#fff;border-color:var(--ink)}
+.module-card .m-btn.assign:hover{opacity:.85}
+.module-card .m-btn.danger:hover{border-color:#c00;color:#c00}
+
 /* focus */
 .focus-wrap{display:flex;flex-direction:column;align-items:center;padding-top:8px}
 .mode-row{display:flex;gap:4px;margin-bottom:18px;background:var(--surface-3);padding:3px;border-radius:var(--r)}
@@ -353,6 +373,73 @@ body{
         </div>
       </div>
 
+      <!-- SCREENS -->
+      <div class="pane" data-pane="screens">
+        <!-- Screen assignments -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3>Displays</h3>
+            <span style="font:400 11px var(--mono);color:var(--ink-3)">Drag modules to assign</span>
+          </div>
+          <div id="screen-slots" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="screen-slot" data-screen="0">
+              <div class="slot-label">LEFT</div>
+              <div class="slot-preview" id="slot-0"><span class="slot-empty">empty</span></div>
+            </div>
+            <div class="screen-slot" data-screen="1">
+              <div class="slot-label">MIDDLE</div>
+              <div class="slot-preview slot-locked" id="slot-1"><span>🥷 Ninja</span></div>
+            </div>
+            <div class="screen-slot" data-screen="2">
+              <div class="slot-label">RIGHT</div>
+              <div class="slot-preview" id="slot-2"><span class="slot-empty">empty</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module library -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3>Modules</h3>
+            <button id="new-module-btn" style="font:600 11px var(--mono);background:var(--ink);color:#fff;border:none;padding:5px 12px;border-radius:var(--r-sm);cursor:pointer">+ New Module</button>
+          </div>
+          <div id="module-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        </div>
+
+        <!-- Module editor (hidden by default) -->
+        <div class="card" id="module-editor" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 id="editor-title">Edit Module</h3>
+            <div style="display:flex;gap:6px">
+              <button id="editor-preview-btn" style="font:500 11px var(--mono);background:none;border:1px solid var(--line-2);padding:5px 10px;border-radius:var(--r-sm);cursor:pointer">Preview</button>
+              <button id="editor-save-btn" style="font:600 11px var(--mono);background:var(--ink);color:#fff;border:none;padding:5px 12px;border-radius:var(--r-sm);cursor:pointer">Save</button>
+              <button id="editor-close-btn" style="font:500 11px var(--mono);background:none;border:1px solid var(--line-2);padding:5px 10px;border-radius:var(--r-sm);cursor:pointer">Close</button>
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <label style="font:500 11px var(--mono);color:var(--ink-2)">Name</label>
+            <input id="editor-name" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 12px var(--mono)">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label style="font:500 11px var(--mono);color:var(--ink-2)">HTML</label>
+              <textarea id="editor-html" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
+            </div>
+            <div>
+              <label style="font:500 11px var(--mono);color:var(--ink-2)">CSS</label>
+              <textarea id="editor-css" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
+            </div>
+            <div>
+              <label style="font:500 11px var(--mono);color:var(--ink-2)">JavaScript</label>
+              <textarea id="editor-js" style="width:100%;height:180px;margin-top:4px;padding:6px;border:1px solid var(--line-2);border-radius:var(--r-sm);font:400 11px var(--mono);resize:vertical;background:var(--surface-2)"></textarea>
+            </div>
+          </div>
+          <div id="editor-preview-frame" style="display:none;border:1px solid var(--line-2);border-radius:var(--r-sm);overflow:hidden;margin-top:8px">
+            <iframe id="editor-iframe" style="width:240px;height:320px;border:none;transform-origin:top left;transform:scale(0.75)" sandbox="allow-scripts"></iframe>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS -->
       <div class="pane" data-pane="settings">
         <div class="card">
@@ -463,6 +550,7 @@ const NAV=[
   {id:'habits',lbl:'Habit',title:'Habits',sub:'Build streaks',icon:'<path d="M10 17.5c-3 0-5.2-2.1-5.2-5 0-2.6 1.8-4 2.7-6.3.7 1.4.4 2.8 1.4 3.4.8-1.6.2-3.8-.4-5.4 2.9 1 5 4.3 5 7.9 0 3.2-2.3 5.4-3.5 5.4z"/>'},
   {id:'insights',lbl:'Stats',title:'Insights',sub:'Where time goes',icon:'<line x1="4" y1="16.5" x2="16" y2="16.5"/><rect x="4.5" y="10" width="3" height="6"/><rect x="9" y="6" width="3" height="10"/><rect x="13.5" y="12" width="3" height="4"/>'},
   {id:'chat',lbl:'Chat',title:'Chat',sub:'Talk to the ninja',icon:'<path d="M4 5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H8l-3 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>'},
+  {id:'screens',lbl:'Screen',title:'Screens',sub:'Manage display modules',icon:'<rect x="3" y="4" width="14" height="10" rx="1"/><line x1="7" y1="17" x2="13" y2="17"/><line x1="10" y1="14" x2="10" y2="17"/>'},
 ];
 NAV.forEach(n=>{
   $('#nav').append(`<button class="nav-btn${n.id==='today'?' active':''}" data-view="${n.id}" title="${n.title}">
@@ -478,7 +566,7 @@ function switchView(v){
   if(n){$('#vTitle').text(n.title);$('#vSub').text(n.sub)}
   else if(v==='settings'){$('#vTitle').text('Settings');$('#vSub').text('Ninja configuration')}
   if(v==='insights')renderInsights();if(v==='habits')renderHabits();
-  if(v==='settings')loadSettings();
+  if(v==='settings')loadSettings();if(v==='screens')loadScreens();
 }
 
 // === CLOCK ===
@@ -919,6 +1007,134 @@ $('#s-update-btn').on('click',async function(){
   }
 });
 async function restartService(){if(!confirm('Restart ninja service?'))return;await post('restart',{});$('#s-test-status').text('Restarting...')}
+
+// === SCREENS ===
+let screenModules=[];
+let screenAssignments={};
+let editingModuleId=null;
+
+async function loadScreens(){
+  const[mods,scr]=await Promise.all([api('modules'),api('screens')]);
+  screenModules=mods.modules||[];
+  screenAssignments=scr.screens||{};
+  renderScreenSlots();
+  renderModuleList();
+}
+
+function renderScreenSlots(){
+  [0,2].forEach(i=>{
+    const slot=$('#slot-'+i);
+    const modId=screenAssignments[i];
+    const mod=screenModules.find(m=>m.id===modId);
+    if(mod){
+      slot.html('<span class="slot-module-name">'+esc(mod.name)+'</span>').addClass('has-module');
+    }else{
+      slot.html('<span class="slot-empty">empty</span>').removeClass('has-module');
+    }
+  });
+}
+
+function renderModuleList(){
+  const c=$('#module-list').empty();
+  screenModules.forEach(m=>{
+    const onLeft=screenAssignments[0]===m.id;
+    const onRight=screenAssignments[2]===m.id;
+    const assigned=onLeft?'LEFT':onRight?'RIGHT':'';
+    c.append(`<div class="module-card" data-id="${m.id}">
+      <div class="m-name">${esc(m.name)}</div>
+      <div class="m-cat">${esc(m.category||'custom')}${assigned?' · <b>'+assigned+'</b>':''}</div>
+      <div class="m-actions">
+        <button class="m-btn assign" data-assign="0" title="Assign to LEFT">← L</button>
+        <button class="m-btn assign" data-assign="2" title="Assign to RIGHT">R →</button>
+        <button class="m-btn" data-edit title="Edit">Edit</button>
+        ${m.category!=='standard'?'<button class="m-btn danger" data-del title="Delete">×</button>':''}
+      </div>
+    </div>`);
+  });
+}
+
+// Assign module to screen
+$('#module-list').on('click','.m-btn[data-assign]',async function(e){
+  e.stopPropagation();
+  const modId=$(this).closest('.module-card').data('id');
+  const screen=$(this).data('assign');
+  await post('screens/'+screen,{moduleId:modId});
+  await loadScreens();
+});
+
+// Edit module
+$('#module-list').on('click','.m-btn[data-edit]',function(e){
+  e.stopPropagation();
+  const modId=$(this).closest('.module-card').data('id');
+  openEditor(modId);
+});
+
+// Delete module
+$('#module-list').on('click','.m-btn[data-del]',async function(e){
+  e.stopPropagation();
+  const modId=$(this).closest('.module-card').data('id');
+  if(!confirm('Delete this module?'))return;
+  await del('modules/'+modId);
+  await loadScreens();
+});
+
+// New module
+$('#new-module-btn').on('click',async function(){
+  const mod=await post('modules',{name:'My Module',html:'<div>Hello!</div>',css:'div{color:#d2cba6;padding:15px;}',js:''});
+  await loadScreens();
+  openEditor(mod.module.id);
+});
+
+// Editor
+function openEditor(modId){
+  const mod=screenModules.find(m=>m.id===modId);
+  if(!mod)return;
+  editingModuleId=modId;
+  $('#editor-title').text('Edit: '+mod.name);
+  $('#editor-name').val(mod.name);
+  $('#editor-html').val(mod.html||'');
+  $('#editor-css').val(mod.css||'');
+  $('#editor-js').val(mod.js||'');
+  $('#module-editor').show();
+  $('#editor-preview-frame').hide();
+}
+
+$('#editor-save-btn').on('click',async function(){
+  if(!editingModuleId)return;
+  $(this).text('Saving...');
+  await put('modules/'+editingModuleId,{
+    name:$('#editor-name').val(),
+    html:$('#editor-html').val(),
+    css:$('#editor-css').val(),
+    js:$('#editor-js').val(),
+  });
+  $(this).text('Saved ✓');
+  setTimeout(()=>$(this).text('Save'),1500);
+  await loadScreens();
+});
+
+$('#editor-close-btn').on('click',function(){
+  editingModuleId=null;
+  $('#module-editor').hide();
+});
+
+$('#editor-preview-btn').on('click',function(){
+  const frame=$('#editor-preview-frame');
+  if(frame.is(':visible')){frame.hide();return;}
+  frame.show();
+  const iframe=$('#editor-iframe')[0];
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{width:240px;height:320px;overflow:hidden;background:#000;font-family:'LanaPixel',monospace;color:#d2cba6}
+    @font-face{font-family:'LanaPixel';src:url('/fonts/lanapixel.ttf') format('truetype')}
+    ${$('#editor-css').val()}
+  </style></head><body>
+    <script>window.NINJA_DATA={}</script>
+    ${$('#editor-html').val()}
+    <script>${$('#editor-js').val()}<\/script>
+  </body></html>`;
+  iframe.srcdoc=html;
+});
 
 // === PATREON ===
 async function loadPatreon(){
