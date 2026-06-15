@@ -110,7 +110,7 @@ setInterval(update, 1000);`,
 .track {
   font-size: 50px;
   margin-top: 25px;
-  line-height: 1.2;
+  line-height: 0.9;
   word-wrap: break-word;
 }
 .artist {
