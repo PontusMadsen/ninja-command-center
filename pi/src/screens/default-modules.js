@@ -190,7 +190,7 @@ setInterval(update, 1000);`,
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .checkbox {
   width: 14px;
