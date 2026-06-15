@@ -177,16 +177,24 @@ body{
       </div>
 
       <div class="vars-card">
-        <h4>{ } Available Data</h4>
-        <code>window.NINJA_DATA.local_tz</code>
-        <code>window.NINJA_DATA.remote_tz</code>
-        <code>window.NINJA_DATA.remote_label</code>
-        <code>window.NINJA_DATA.tenor_key</code>
-        <code>window.NINJA_DATA.gif_tag</code>
-        <code>window.NINJA_DATA.text</code>
-        <p style="margin-top:8px;font:400 10px var(--mono);color:var(--ink-3)">
-          Use <b>fetch('/api/...')</b> for tasks, habits, spotify, weather etc.
-        </p>
+        <h4>{{ }} Template Variables</h4>
+        <code>{{local_tz}}</code>
+        <code>{{remote_tz}}</code>
+        <code>{{remote_label}}</code>
+        <code>{{tenor_key}}</code>
+        <code>{{gif_tag}}</code>
+        <code>{{base_url}}</code>
+        <h4 style="margin-top:12px">JS Data (window.NINJA_DATA)</h4>
+        <code>.tasks[]</code>
+        <code>.habits[]</code>
+        <code>.now_playing</code>
+        <code>.text</code>
+        <h4 style="margin-top:12px">API Endpoints</h4>
+        <code>fetch('/api/tasks')</code>
+        <code>fetch('/api/habits')</code>
+        <code>fetch('/api/spotify/now-playing')</code>
+        <code>fetch('/api/weather')</code>
+        <code>fetch('/api/nudges/status')</code>
       </div>
 
       <div class="status" id="status"></div>
