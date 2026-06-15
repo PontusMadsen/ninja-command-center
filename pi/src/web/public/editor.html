@@ -63,6 +63,9 @@ body{
 .editor-main{
   display:grid;grid-template-columns:1fr 280px;gap:16px;
 }
+.code-section{
+  display:flex;flex-direction:column;gap:12px;
+}
 
 /* Code tabs */
 .code-panel{
@@ -150,19 +153,21 @@ body{
   </div>
 
   <div class="editor-main">
-    <div class="code-panel">
-      <div class="code-col">
-        <div class="code-col-label">HTML</div>
-        <textarea id="code-html" spellcheck="false"></textarea>
+    <div class="code-section">
+      <div class="code-panel">
+        <div class="code-col">
+          <div class="code-col-label">HTML</div>
+          <textarea id="code-html" spellcheck="false"></textarea>
+        </div>
+        <div class="code-col">
+          <div class="code-col-label">CSS</div>
+          <textarea id="code-css" spellcheck="false"></textarea>
+        </div>
       </div>
-      <div class="code-col">
-        <div class="code-col-label">CSS</div>
-        <textarea id="code-css" spellcheck="false"></textarea>
+      <div class="js-panel">
+        <div class="code-col-label">JavaScript</div>
+        <textarea id="code-js" spellcheck="false"></textarea>
       </div>
-    </div>
-    <div class="js-panel">
-      <div class="code-col-label">JavaScript</div>
-      <textarea id="code-js" spellcheck="false"></textarea>
     </div>
 
     <div class="preview-panel">
