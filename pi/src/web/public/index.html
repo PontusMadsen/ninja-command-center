@@ -1123,16 +1123,18 @@ $('#editor-preview-btn').on('click',function(){
   if(frame.is(':visible')){frame.hide();return;}
   frame.show();
   const iframe=$('#editor-iframe')[0];
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{width:240px;height:320px;overflow:hidden;background:#000;font-family:'LanaPixel',monospace;color:#d2cba6}
-    @font-face{font-family:'LanaPixel';src:url('/fonts/lanapixel.ttf') format('truetype')}
-    ${$('#editor-css').val()}
-  </style></head><body>
-    <script>window.NINJA_DATA={}</script>
-    ${$('#editor-html').val()}
-    <script>${$('#editor-js').val()}<\/script>
-  </body></html>`;
+  const css=$('#editor-css').val();
+  const body=$('#editor-html').val();
+  const js=$('#editor-js').val();
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'body{width:240px;height:320px;overflow:hidden;background:#000;font-family:LanaPixel,monospace;color:#d2cba6}'
+    +'@font-face{font-family:LanaPixel;src:url(/fonts/lanapixel.ttf) format(truetype)}'
+    +css+'</style></head><body>'
+    +'<scr'+'ipt>window.NINJA_DATA={}</scr'+'ipt>'
+    +body
+    +'<scr'+'ipt>'+js+'</scr'+'ipt>'
+    +'</body></html>';
   iframe.srcdoc=html;
 });
 
