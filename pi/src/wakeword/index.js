@@ -17,6 +17,7 @@ export default class WakeWordListener extends EventEmitter {
     const script = join(__dirname, 'listener.py');
     this.process = spawn('python3', [script], {
       stdio: ['pipe', 'pipe', 'pipe'],
+      detached: true,
     });
 
     this.process.stdout.on('data', (data) => {
@@ -66,7 +67,9 @@ export default class WakeWordListener extends EventEmitter {
   stop() {
     this.stopped = true;
     if (this.process) {
-      this.process.kill();
+      // Kill entire process group to include arecord child
+      try { process.kill(-this.process.pid, 'SIGKILL'); } catch {}
+      try { this.process.kill('SIGKILL'); } catch {}
       this.process = null;
     }
   }

@@ -144,6 +144,7 @@ async function handleVoiceTurn() {
 
   try {
     if (wakeListener) wakeListener.stop();
+    await new Promise(r => setTimeout(r, 300)); // wait for audio device release
 
     // Prevent BT audio restart during voice turn
     try {
