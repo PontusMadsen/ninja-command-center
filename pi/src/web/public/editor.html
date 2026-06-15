@@ -240,7 +240,13 @@ async function load() {
 // Live preview
 function updatePreview() {
   const css = document.getElementById('code-css').value;
-  const body = document.getElementById('code-html').value;
+  let body = document.getElementById('code-html').value;
+  // Replace {{key}} templates
+  for (const [k, v] of Object.entries(previewData)) {
+    if (typeof v === 'string' || typeof v === 'number') {
+      body = body.replaceAll('{{' + k + '}}', String(v));
+    }
+  }
   const js = document.getElementById('code-js').value;
   const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
     + '*{margin:0;padding:0;box-sizing:border-box}'

@@ -128,6 +128,13 @@ setInterval(update, 200);`,
 
 export function renderModuleHTML(mod, dataHooks = {}) {
   const hooks = JSON.stringify(dataHooks);
+  // Replace {{key}} templates in HTML with data values
+  let html = mod.html || '';
+  for (const [key, val] of Object.entries(dataHooks)) {
+    if (typeof val === 'string' || typeof val === 'number') {
+      html = html.replaceAll('{{' + key + '}}', String(val));
+    }
+  }
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -154,7 +161,7 @@ export function renderModuleHTML(mod, dataHooks = {}) {
 <script>
   window.NINJA_DATA = ${hooks};
 </script>
-${mod.html || ''}
+${html}
 <script>${mod.js || ''}</script>
 </body>
 </html>`;
