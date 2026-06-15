@@ -333,12 +333,12 @@ setInterval(update, 10000);`,
   word-wrap: break-word;
 }`,
     js: `
-// Text is set via window.NINJA_DATA.text
 function update() {
   const text = window.NINJA_DATA?.text || '';
   document.getElementById('text').textContent = text;
 }
-update();`,
+update();
+setInterval(update, 200);`,
   },
 
   {
