@@ -8,7 +8,8 @@ import { writeFileSync } from 'fs';
 import logger from '../logger.js';
 import { getModule, renderModuleHTML } from './modules.js';
 
-const SCREENSHOT_INTERVAL = 500; // ms between screenshots (2 fps — enough for clocks/text)
+const SCREENSHOT_INTERVAL_DEFAULT = 500; // ms for static content (clocks/text)
+const SCREENSHOT_INTERVAL_FAST = 100;    // ms for animated content (gifs)
 const BASE_URL = `http://localhost:${process.env.WEB_PORT || 8888}`;
 
 export default class HtmlRenderer {
@@ -80,13 +81,16 @@ export default class HtmlRenderer {
       screenshotting: false,
     };
 
+    // Determine screenshot rate based on module
+    const interval = (mod.id === 'gif') ? SCREENSHOT_INTERVAL_FAST : SCREENSHOT_INTERVAL_DEFAULT;
+
     // Take first screenshot immediately
     await this._screenshot(screenIdx);
 
     // Start screenshot loop
     this.screens[screenIdx].timer = setInterval(
       () => this._screenshot(screenIdx),
-      SCREENSHOT_INTERVAL,
+      interval,
     );
 
     logger.info({ screen: screenIdx, module: mod.name }, 'Screen module assigned');
