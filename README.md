@@ -375,6 +375,10 @@ The ninja speaks English with a thick Japanese accent — drops articles, uses s
 
 ![Ninja thinking](pi/assets/readme/ninja-thinking.png)
 
+<p align="center">
+  <img src="pi/assets/readme/ninja-3d.jpg" width="400" alt="Ninja 3D">
+</p>
+
 ## Credits
 
 - Ninja character & pixel art by [Pontus Madsen](https://littlegamers.com)
