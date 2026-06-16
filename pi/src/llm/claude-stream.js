@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import logger from '../logger.js';
+import { TOOLS, executeTool } from './tools.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -12,10 +13,11 @@ const SYSTEM_SUFFIX = `
 Output format — STRICT JSON only, no markdown:
 {"text":"your reply here","mood":"face_state"}
 
-Valid moods: idle, happy, sad, angry, surprised, sleeping, confused, focused, scared`;
+Valid moods: idle, happy, sad, angry, surprised, sleeping, confused, focused, scared
+
+You have tools available. Use them when the user asks you to do things like add tasks, switch screens, check habits, etc. After using a tool, respond naturally about what you did.`;
 
 function loadPrompt() {
-  // Try user-customized personality first, then default
   const userPath = join(__dirname, '../../data/personality.md');
   const defaultPath = join(__dirname, '../personality/ninja-base.md');
   try {
@@ -30,9 +32,8 @@ function loadPrompt() {
 }
 
 const conversationHistory = [];
-const MAX_HISTORY = 3; // keep last 3 exchanges (6 messages) for speed
+const MAX_HISTORY = 3;
 
-// Reuse client instance
 let client = null;
 function getClient() {
   if (!client) client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
@@ -40,9 +41,9 @@ function getClient() {
 }
 
 /**
- * Stream Claude response sentence by sentence.
- * Calls onSentence(sentenceText) for each sentence as it completes.
- * Returns { fullText, mood } when done.
+ * Send message to Claude with tool support.
+ * Calls onSentence(sentenceText) for each sentence.
+ * Returns { mood } when done.
  */
 export async function respondStreaming(userText, onSentence) {
   if (!ANTHROPIC_API_KEY) {
@@ -58,86 +59,78 @@ export async function respondStreaming(userText, onSentence) {
       conversationHistory.splice(0, 2);
     }
 
-    const stream = getClient().messages.stream({
+    // First call — may include tool use
+    let response = await getClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
+      max_tokens: 300,
       system: loadPrompt(),
       messages: conversationHistory,
+      tools: TOOLS,
     });
 
-    let fullRaw = '';
-    let textBuffer = '';
-    let insideJson = false;
-    let insideText = false;
-    let sentenceBuffer = '';
-    let sentenceCount = 0;
-
-    stream.on('text', (chunk) => {
-      fullRaw += chunk;
-
-      // Track JSON structure to extract just the "text" value
-      for (const ch of chunk) {
-        if (!insideJson && ch === '{') {
-          insideJson = true;
-          continue;
-        }
-        if (!insideJson) continue;
-
-        textBuffer += ch;
-
-        // Detect "text":" or "text": " pattern to start capturing
-        if (!insideText && /\"text\":\s*\"/.test(textBuffer)) {
-          insideText = true;
-          sentenceBuffer = '';
-          textBuffer = '';
-          continue;
-        }
-
-        if (insideText) {
-          // Check for end of text value (unescaped quote)
-          if (ch === '"' && !textBuffer.endsWith('\\"')) {
-            // Flush remaining sentence
-            if (sentenceBuffer.trim()) {
-              onSentence(sentenceBuffer.trim());
-              sentenceCount++;
-            }
-            insideText = false;
-            continue;
-          }
-
-          sentenceBuffer += ch;
-
-          // Check for sentence boundary: space after sentence-ending character
-          // Handle both English and Japanese sentence enders
-          const trimmed = sentenceBuffer.trim();
-          if (trimmed.length > 5 && /[.!?。！？]\s/.test(sentenceBuffer)) {
-            const match = sentenceBuffer.match(/^(.*?[.!?。！？])\s(.*)$/);
-            if (match) {
-              onSentence(match[1].trim());
-              sentenceCount++;
-              sentenceBuffer = match[2];
-            }
-          }
+    // Handle tool use loop (Claude may call multiple tools)
+    while (response.stop_reason === 'tool_use') {
+      const toolResults = [];
+      for (const block of response.content) {
+        if (block.type === 'tool_use') {
+          const result = await executeTool(block.name, block.input);
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: JSON.stringify(result),
+          });
         }
       }
-    });
 
-    const finalMessage = await stream.finalMessage();
+      conversationHistory.push({ role: 'assistant', content: response.content });
+      conversationHistory.push({ role: 'user', content: toolResults });
+
+      // Get Claude's response after tool execution
+      response = await getClient().messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        system: loadPrompt(),
+        messages: conversationHistory,
+      });
+    }
+
+    // Extract text from final response
+    let fullRaw = '';
+    for (const block of response.content) {
+      if (block.type === 'text') fullRaw += block.text;
+    }
+
     const duration = Date.now() - startTime;
-    logger.info({ raw: fullRaw.substring(0, 80), duration, sentences: sentenceCount }, 'LLM streamed');
 
-    // Parse mood from full response
+    // Parse JSON response
+    let textContent = '';
     let mood = 'idle';
     try {
       const cleaned = fullRaw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(cleaned);
+      textContent = parsed.text || '';
       mood = parsed.mood || 'idle';
-    } catch {}
+    } catch {
+      textContent = fullRaw;
+    }
+
+    // Split into sentences and deliver via onSentence
+    let sentenceCount = 0;
+    const sentences = textContent.match(/[^.!?。！？]+[.!?。！？]+/g) || [textContent];
+    for (const s of sentences) {
+      const trimmed = s.trim();
+      if (trimmed) {
+        onSentence(trimmed);
+        sentenceCount++;
+      }
+    }
+
+    logger.info({ raw: fullRaw.substring(0, 80), duration, sentences: sentenceCount }, 'LLM done');
 
     conversationHistory.push({ role: 'assistant', content: fullRaw });
     return { mood };
   } catch (e) {
-    logger.error({ err: e.message }, 'Claude stream failed');
+    logger.error({ err: e.message }, 'Claude failed');
     return null;
   }
 }
