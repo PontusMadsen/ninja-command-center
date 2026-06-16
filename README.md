@@ -276,7 +276,9 @@ sudo reboot
 
 After boot:
 - Displays light up with clock + ninja + Spotify
-- Open `http://command-center.local:8888` for the web UI
+- Open `http://command-center.local:8888`
+- **First time:** a setup wizard appears — enter your Groq + Anthropic API keys, optionally paste your Google Cloud TTS JSON key, connect Spotify
+- Once setup is complete, the main web UI loads
 - Say **"Hey Ninja"** to start talking
 
 ### Step 10: Sudoers (for web UI restart)
