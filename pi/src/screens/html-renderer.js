@@ -9,7 +9,6 @@ import logger from '../logger.js';
 import { getModule, renderModuleHTML } from './modules.js';
 
 const SCREENSHOT_INTERVAL_DEFAULT = 500; // ms for static content (clocks/text)
-const SCREENSHOT_INTERVAL_FAST = 100;    // ms for animated content (gifs)
 const BASE_URL = `http://localhost:${process.env.WEB_PORT || 8888}`;
 
 export default class HtmlRenderer {
@@ -49,6 +48,7 @@ export default class HtmlRenderer {
     const existing = this.screens[screenIdx];
     if (existing) {
       if (existing.timer) clearInterval(existing.timer);
+      if (existing.gifModule) existing.gifModule.stop();
       if (existing.page) await existing.page.close().catch(() => {});
       delete this.screens[screenIdx];
     }
@@ -81,8 +81,17 @@ export default class HtmlRenderer {
       screenshotting: false,
     };
 
-    // Determine screenshot rate based on module
-    const interval = (mod.id === 'gif') ? SCREENSHOT_INTERVAL_FAST : SCREENSHOT_INTERVAL_DEFAULT;
+    // GIF module bypasses Playwright — use Python renderer directly
+    if (mod.id === 'gif') {
+      const { default: GifScreen } = await import('./giphy.js');
+      const gif = new GifScreen({ sendCommand: this.sendCommand, screen: screenIdx });
+      this.screens[screenIdx].gifModule = gif;
+      gif.start();
+      await page.close().catch(() => {});
+      this.screens[screenIdx].page = null;
+      logger.info({ screen: screenIdx }, 'GIF module using Python renderer');
+      return;
+    }
 
     // Take first screenshot immediately
     await this._screenshot(screenIdx);
@@ -90,7 +99,7 @@ export default class HtmlRenderer {
     // Start screenshot loop
     this.screens[screenIdx].timer = setInterval(
       () => this._screenshot(screenIdx),
-      interval,
+      SCREENSHOT_INTERVAL_DEFAULT,
     );
 
     logger.info({ screen: screenIdx, module: mod.name }, 'Screen module assigned');
