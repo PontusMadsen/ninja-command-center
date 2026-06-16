@@ -103,6 +103,10 @@ export const TOOLS = [
 ];
 
 // Tool execution
+// Callback for side effects (e.g., updating screen defaults)
+let _onScreenSwitch = null;
+export function setOnScreenSwitch(fn) { _onScreenSwitch = fn; }
+
 export async function executeTool(name, input) {
   logger.info({ tool: name, input }, 'Executing tool');
 
@@ -130,6 +134,7 @@ export async function executeTool(name, input) {
 
       case 'switch_screen': {
         await apiPost('screens/' + input.screen, { moduleId: input.module });
+        if (_onScreenSwitch) _onScreenSwitch(input.screen, input.module);
         return { success: true, screen: input.screen, module: input.module };
       }
 

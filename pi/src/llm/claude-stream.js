@@ -127,7 +127,16 @@ export async function respondStreaming(userText, onSentence) {
 
     logger.info({ raw: fullRaw.substring(0, 80), duration, sentences: sentenceCount }, 'LLM done');
 
+    // Store only the text response in history (not tool blocks)
     conversationHistory.push({ role: 'assistant', content: fullRaw });
+    // Clean any tool_result messages from history to avoid mismatch errors
+    while (conversationHistory.length > 0) {
+      const last = conversationHistory[conversationHistory.length - 1];
+      if (Array.isArray(last.content) && last.content.some(b => b.type === 'tool_result')) {
+        conversationHistory.pop();
+        if (conversationHistory.length > 0) conversationHistory.pop(); // remove matching assistant tool_use
+      } else break;
+    }
     return { mood };
   } catch (e) {
     logger.error({ err: e.message }, 'Claude failed');

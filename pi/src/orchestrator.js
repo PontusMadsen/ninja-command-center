@@ -46,6 +46,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const AUDIO_DEVICE = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
 
 import { hasAngryKeyword, angryReaction, moodFace, wakeWordDetected, thinking, speaking } from './face-reactions.js';
+import { setOnScreenSwitch } from './llm/tools.js';
 
 let voiceActive = false;
 let wakeListener = null;
@@ -262,6 +263,9 @@ async function main() {
       screenModules.htmlRenderer = new HtmlRenderer({ sendCommand });
       await screenModules.htmlRenderer.start();
       screenModules.screen2Default = 'spotify';
+      setOnScreenSwitch((screen, module) => {
+        if (screen === 2) screenModules.screen2Default = module;
+      });
       logger.info('HTML renderer ready — waiting for web server to register routes');
     } catch (e) {
       logger.warn({ err: e.message }, 'HTML renderer unavailable, using Python screens');
