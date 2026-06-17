@@ -629,6 +629,13 @@ export async function startWebServer(state) {
     }, 500);
   });
 
+  app.post('/api/shutdown', (req, res) => {
+    res.json({ ok: true, note: 'Shutting down...' });
+    setTimeout(() => {
+      exec('sudo shutdown -h now');
+    }, 1000);
+  });
+
   app.get('/api/version', (req, res) => {
     exec('cd ' + REPO_ROOT + ' && git rev-parse --short HEAD && git log -1 --format=%s', (err, stdout) => {
       if (err) return res.json({ hash: '?', message: '?' });

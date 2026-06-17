@@ -477,6 +477,7 @@ body{
             <button class="btn" id="s-test-mic" style="width:auto;height:32px;padding:0 12px">Test Mic</button>
             <button class="btn" id="s-test-display" style="width:auto;height:32px;padding:0 12px">Test Display</button>
             <button class="btn" id="s-restart" style="width:auto;height:32px;padding:0 12px">Restart Service</button>
+            <button class="btn" id="s-shutdown" style="width:auto;height:32px;padding:0 12px;color:#c00">Shutdown Pi</button>
           </div>
           <div style="font:500 10px var(--mono);color:var(--ink-3);margin-top:6px" id="s-test-status"></div>
         </div>
@@ -974,6 +975,7 @@ $('#s-update-btn').on('click',async function(){
   }
 });
 async function restartService(){if(!confirm('Restart ninja service?'))return;await post('restart',{});$('#s-test-status').text('Restarting...')}
+$('#s-shutdown').on('click',async function(){if(!confirm('Shutdown the Pi? You will need physical access to turn it back on.'))return;$(this).text('Shutting down...');await post('shutdown',{})});
 
 // === SCREENS ===
 let screenModules=[];

@@ -37,6 +37,14 @@ async function apiDel(path) {
 // Tool definitions for Claude
 export const TOOLS = [
   {
+    name: 'shutdown',
+    description: 'Shutdown the Raspberry Pi. Only use when the user explicitly asks to shut down or turn off.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
     name: 'play_crossscreen',
     description: 'Play a crossscreen animation across all 3 displays. The ninja runs across all screens. Use when user asks for the ninja run, crossscreen animation, or something cool.',
     input_schema: {
@@ -165,6 +173,11 @@ export async function executeTool(name, input) {
       case 'play_crossscreen': {
         const result = await apiPost('crossscreen/play', { gif: input.gif });
         return result;
+      }
+
+      case 'shutdown': {
+        await apiPost('shutdown', {});
+        return { success: true, message: 'Shutting down' };
       }
 
       default:
