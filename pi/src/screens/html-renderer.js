@@ -41,7 +41,13 @@ export default class HtmlRenderer {
   }
 
   pause() { this.paused = true; }
-  resume() { this.paused = false; }
+  resume() {
+    this.paused = false;
+    // Reset screenshotting flags that may have gotten stuck
+    for (const screen of Object.values(this.screens)) {
+      screen.screenshotting = false;
+    }
+  }
 
   async setScreen(screenIdx, moduleId, dataHooks = {}) {
     // Stop existing screen
