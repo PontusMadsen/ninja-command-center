@@ -37,6 +37,16 @@ async function apiDel(path) {
 // Tool definitions for Claude
 export const TOOLS = [
   {
+    name: 'play_crossscreen',
+    description: 'Play a crossscreen animation across all 3 displays. The ninja runs across all screens. Use when user asks for the ninja run, crossscreen animation, or something cool.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        gif: { type: 'string', description: 'GIF filename (default: ninja_run_crossscreen.gif)' },
+      },
+    },
+  },
+  {
     name: 'add_task',
     description: 'Add a new task/todo item',
     input_schema: {
@@ -149,6 +159,11 @@ export async function executeTool(name, input) {
 
       case 'trigger_nudge': {
         const result = await apiPost('nudges/now', { category: input.category });
+        return result;
+      }
+
+      case 'play_crossscreen': {
+        const result = await apiPost('crossscreen/play', { gif: input.gif });
         return result;
       }
 

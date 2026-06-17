@@ -307,13 +307,22 @@ async function main() {
   // Start web UI
   const app = await startWebServer(ninjaState);
 
-  // Start HTML screens now that Express is running
+  // Start HTML screens + crossscreen now that Express is running
   if (screenModules.htmlRenderer && app) {
+    const { default: CrossscreenPlayer } = await import('./crossscreen/index.js');
+    const crossscreen = new CrossscreenPlayer({
+      sendCommand,
+      setFace,
+      htmlRenderer: screenModules.htmlRenderer,
+    });
+    crossscreen.start();
+    screenModules.crossscreen = crossscreen;
+
     const { registerScreenRoutes } = await import('./screens/routes.js');
-    registerScreenRoutes(app, screenModules.htmlRenderer);
+    registerScreenRoutes(app, screenModules.htmlRenderer, crossscreen);
     await screenModules.htmlRenderer.setScreen(0, 'clock');
     await screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
-    logger.info('HTML screen modules started');
+    logger.info('HTML screen modules + crossscreen started');
   }
 
   // --- Hub-aware ninja behaviors ---

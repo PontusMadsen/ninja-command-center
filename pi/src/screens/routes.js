@@ -31,8 +31,43 @@ function seedDefaults() {
   }
 }
 
-export function registerScreenRoutes(app, htmlRenderer) {
+export function registerScreenRoutes(app, htmlRenderer, crossscreenPlayer) {
   seedDefaults();
+
+  // --- Crossscreen API ---
+  if (crossscreenPlayer) {
+    app.get('/api/crossscreen/gifs', (req, res) => {
+      res.json({ gifs: crossscreenPlayer.getGifs() });
+    });
+
+    app.get('/api/crossscreen/config', (req, res) => {
+      res.json(crossscreenPlayer.getConfig());
+    });
+
+    app.post('/api/crossscreen/play', async (req, res) => {
+      const gif = req.body?.gif || 'ninja_run_crossscreen.gif';
+      const loops = req.body?.loops || 1;
+      res.json({ ok: true, gif, loops });
+      crossscreenPlayer.play(gif, loops);
+    });
+
+    app.post('/api/crossscreen/schedule', (req, res) => {
+      const { hour, minute, gif } = req.body;
+      if (hour === undefined || minute === undefined) return res.status(400).json({ error: 'hour and minute required' });
+      const config = crossscreenPlayer.addSchedule(hour, minute, gif);
+      res.json({ ok: true, config });
+    });
+
+    app.delete('/api/crossscreen/schedule/:index', (req, res) => {
+      const config = crossscreenPlayer.removeSchedule(parseInt(req.params.index));
+      res.json({ ok: true, config });
+    });
+
+    app.put('/api/crossscreen/config', (req, res) => {
+      const config = crossscreenPlayer.updateConfig(req.body);
+      res.json({ ok: true, config });
+    });
+  }
 
   // --- Serve module as HTML page ---
   app.get('/screen/:id', async (req, res) => {

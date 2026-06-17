@@ -626,6 +626,46 @@ def start_gif(screen_idx, url, screens, converter):
     t.start()
 
 
+# --- Crossscreen playback ---
+
+def _play_crossscreen(gif_path, loops, screens, converters):
+    """Play a 720×320 GIF across all 3 screens."""
+    try:
+        gif = Image.open(gif_path)
+    except Exception as e:
+        sys.stderr.write(f'crossscreen error: {e}\n')
+        sys.stderr.flush()
+        return
+
+    # Pre-extract all frames
+    frames = []
+    try:
+        while True:
+            wide = gif.copy().convert('RGB')
+            if wide.size != (720, 320):
+                wide = wide.resize((720, 320))
+            slices = []
+            for s in range(3):
+                crop = wide.crop((s * 240, 0, (s + 1) * 240, 320))
+                slices.append(converters[s](crop))
+            frames.append(slices)
+            gif.seek(gif.tell() + 1)
+    except EOFError:
+        pass
+
+    duration = gif.info.get('duration', 100) / 1000.0
+    frame_delay = max(duration, 0.02)
+
+    sys.stderr.write(f'crossscreen: {len(frames)} frames, {loops} loops\n')
+    sys.stderr.flush()
+
+    for loop in range(loops):
+        for slices in frames:
+            for i in range(3):
+                screens[i].push_frame(slices[i])
+            time.sleep(frame_delay)
+
+
 # --- Main ---
 
 def main():
@@ -668,7 +708,9 @@ def main():
         cmd_type = cmd.get('type', 'image')
 
         try:
-            if cmd_type == 'ninja_says':
+            if cmd_type == 'crossscreen':
+                _play_crossscreen(cmd.get('path', ''), cmd.get('loops', 1), screens, converters)
+            elif cmd_type == 'ninja_says':
                 img = render_ninja_says(cmd.get('text', ''))
                 idx = int(screen)
                 if 0 <= idx < len(screens):
