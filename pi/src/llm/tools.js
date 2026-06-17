@@ -87,7 +87,7 @@ export const TOOLS = [
   },
   {
     name: 'switch_screen',
-    description: 'Change what module is displayed on a screen. Screen 0 = left display, screen 2 = right display. Available modules: clock, spotify, todo, habits, gif',
+    description: 'Change what module is displayed on a screen. Screen 0 = left display, screen 2 = right display. Available modules: clock, spotify, todo, habits, gif, weather, calendar',
     input_schema: {
       type: 'object',
       properties: {
