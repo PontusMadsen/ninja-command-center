@@ -653,9 +653,6 @@ def _play_crossscreen(gif_path, loops, screens, converters):
     except EOFError:
         pass
 
-    duration = gif.info.get('duration', 100) / 1000.0
-    frame_delay = max(duration, 0.02)
-
     sys.stderr.write(f'crossscreen: {len(frames)} frames, {loops} loops\n')
     sys.stderr.flush()
 
@@ -663,7 +660,6 @@ def _play_crossscreen(gif_path, loops, screens, converters):
         for slices in frames:
             for i in range(3):
                 screens[i].push_frame(slices[i])
-            time.sleep(frame_delay)
 
 
 # --- Main ---
