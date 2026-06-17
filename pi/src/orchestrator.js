@@ -208,12 +208,14 @@ async function handleVoiceTurn() {
     voiceActive = false;
     if (idle) idle.enabled = true;
     if (nudges) nudges.resume();
-    // Restore screens
+    // Restore screens — wait a moment for Python renderer to finish, then take over
     if (screenModules.htmlRenderer) {
-      screenModules.htmlRenderer.resume();
-      if (screenModules.screen2Default) {
-        screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
-      }
+      setTimeout(async () => {
+        screenModules.htmlRenderer.resume();
+        if (screenModules.screen2Default) {
+          await screenModules.htmlRenderer.setScreen(2, screenModules.screen2Default);
+        }
+      }, 2000);
     } else if (screenModules.spotify) {
       screenModules.spotify.lastTrackId = null;
       screenModules.spotify.tick();
