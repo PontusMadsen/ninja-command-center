@@ -102,7 +102,7 @@ export async function respondStreaming(userText, onSentence) {
 
     const duration = Date.now() - startTime;
 
-    // Parse JSON response
+    // Parse JSON response — handle multiple formats
     let textContent = '';
     let mood = 'idle';
     try {
@@ -111,17 +111,29 @@ export async function respondStreaming(userText, onSentence) {
       textContent = parsed.text || '';
       mood = parsed.mood || 'idle';
     } catch {
-      textContent = fullRaw;
+      // Try to extract text from partial JSON
+      const textMatch = fullRaw.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/); 
+      if (textMatch) {
+        textContent = textMatch[1].replace(/\\n/g, ' ').replace(/\\"/g, '"');
+        const moodMatch = fullRaw.match(/"mood"\s*:\s*"([^"]+)"/);
+        if (moodMatch) mood = moodMatch[1];
+      } else {
+        // Strip any JSON-looking content
+        textContent = fullRaw.replace(/\{[^}]*\}/g, '').trim();
+      }
     }
 
     // Split into sentences and deliver via onSentence
     let sentenceCount = 0;
-    const sentences = textContent.match(/[^.!?。！？]+[.!?。！？]+/g) || [textContent];
-    for (const s of sentences) {
-      const trimmed = s.trim();
-      if (trimmed) {
-        onSentence(trimmed);
-        sentenceCount++;
+    if (textContent) {
+      const sentences = textContent.match(/[^.!?。！？]+[.!?。！？]+/g) || [textContent];
+      for (const s of sentences) {
+        const trimmed = s.trim();
+        // Skip any remaining JSON fragments
+        if (trimmed && !trimmed.startsWith('{') && !trimmed.startsWith('"text"')) {
+          onSentence(trimmed);
+          sentenceCount++;
+        }
       }
     }
 
