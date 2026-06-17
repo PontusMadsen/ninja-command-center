@@ -373,11 +373,7 @@ The ninja speaks English with a thick Japanese accent — drops articles, uses s
 >
 > *"Coffee getting cold. Just like your forgotten dreams. Drink it anyway."*
 
-![Ninja thinking](pi/assets/readme/ninja-thinking.png)
-
-<p align="center">
-  <img src="pi/assets/readme/ninja-3d.jpg" width="400" alt="Ninja 3D">
-</p>
+![Ninja 3D](pi/assets/readme/ninja-3d.jpg)
 
 ## Credits
 
