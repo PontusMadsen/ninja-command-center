@@ -30,6 +30,7 @@ export async function startWebServer(state) {
   const spotify = await import('../integrations/spotify.js');
   const calendar = await import('../integrations/calendar.js');
   const caldav = await import('../integrations/caldav.js');
+  const icsCal = await import('../integrations/ics-calendar.js');
   const mail = await import('../integrations/mail.js');
   const weather = await import('../integrations/weather.js');
 
@@ -753,19 +754,21 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
   app.get('/api/calendar/events', (req, res) => {
     const google = calendar.getEvents() || [];
     const dav = caldav.getEvents() || [];
-    const all = [...google, ...dav].sort((a, b) => new Date(a.start) - new Date(b.start));
+    const ics = icsCal.getEvents() || [];
+    const all = [...google, ...dav, ...ics].sort((a, b) => new Date(a.start) - new Date(b.start));
     res.json({ events: all });
   });
 
   app.get('/api/calendar/next', (req, res) => {
     const google = calendar.getEvents() || [];
     const dav = caldav.getEvents() || [];
-    const all = [...google, ...dav].sort((a, b) => new Date(a.start) - new Date(b.start));
+    const ics = icsCal.getEvents() || [];
+    const all = [...google, ...dav, ...ics].sort((a, b) => new Date(a.start) - new Date(b.start));
     res.json({ event: all[0] || null });
   });
 
   app.get('/api/calendar/status', (req, res) => {
-    res.json({ google: calendar.isConnected(), caldav: caldav.isConnected() });
+    res.json({ google: calendar.isConnected(), caldav: caldav.isConnected(), ics: icsCal.isConnected() });
   });
 
   // --- Mail ---
@@ -837,6 +840,7 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
   spotify.startPolling();
   calendar.startPolling();
   if (caldav.isConnected()) caldav.startPolling();
+  if (icsCal.isConnected()) icsCal.startPolling();
   mail.startPolling();
   weather.startPolling();
 
