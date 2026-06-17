@@ -300,6 +300,98 @@ setInterval(update, 10000);`,
   },
 
   {
+    id: 'weather',
+    name: 'Weather',
+    category: 'standard',
+    icon: '',
+    html: `
+<div class="weather-screen">
+  <div class="header">
+    <span class="label">Weather</span>
+  </div>
+  <div class="temp" id="temp">--°</div>
+  <div class="desc" id="desc">Loading...</div>
+  <div class="city" id="city">{{remote_label}}</div>
+  <div class="details">
+    <div class="detail"><span class="detail-label">Feels like</span><span id="feels">--°</span></div>
+    <div class="detail"><span class="detail-label">Humidity</span><span id="humidity">--%</span></div>
+  </div>
+  <div class="forecast" id="forecast"></div>
+</div>`,
+    css: `
+.weather-screen {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.header .label { font-size: 24px; }
+.temp {
+  font-size: 80px;
+  margin-top: 20px;
+  line-height: 1;
+}
+.desc {
+  font-size: 24px;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+.city {
+  font-size: 16px;
+  margin-top: 4px;
+  opacity: 0.5;
+}
+.details {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+.detail { font-size: 16px; }
+.detail-label {
+  display: block;
+  font-size: 12px;
+  opacity: 0.5;
+}
+.forecast {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+}
+.fc-item {
+  font-size: 12px;
+  opacity: 0.6;
+}
+.fc-item .fc-temp { font-size: 16px; opacity: 1; }`,
+    js: `
+async function update() {
+  try {
+    const res = await fetch('/api/weather');
+    const w = await res.json();
+    if (w && w.temp != null) {
+      document.getElementById('temp').textContent = Math.round(w.temp) + '°';
+      document.getElementById('desc').textContent = w.description || '';
+      document.getElementById('city').textContent = w.city || '';
+      document.getElementById('feels').textContent = Math.round(w.feelsLike || w.temp) + '°';
+      document.getElementById('humidity').textContent = (w.humidity || '--') + '%';
+      if (w.forecast && w.forecast.length) {
+        document.getElementById('forecast').innerHTML = w.forecast.map(f => {
+          const time = f.time ? f.time.split(' ')[1].slice(0,5) : '';
+          return '<div class="fc-item"><div>' + time + '</div><div class="fc-temp">' + Math.round(f.temp) + '°</div></div>';
+        }).join('');
+      }
+    }
+  } catch(e) {}
+}
+update();
+setInterval(update, 60000);`,
+  },
+
+  {
     id: 'gif',
     name: 'GIF',
     category: 'standard',
