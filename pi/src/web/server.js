@@ -29,6 +29,7 @@ export async function startWebServer(state) {
 
   const spotify = await import('../integrations/spotify.js');
   const calendar = await import('../integrations/calendar.js');
+  const caldav = await import('../integrations/caldav.js');
   const mail = await import('../integrations/mail.js');
   const weather = await import('../integrations/weather.js');
 
@@ -748,17 +749,23 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
     }
   });
 
-  // --- Calendar ---
+  // --- Calendar (Google + CalDAV merged) ---
   app.get('/api/calendar/events', (req, res) => {
-    res.json({ events: calendar.getEvents() });
+    const google = calendar.getEvents() || [];
+    const dav = caldav.getEvents() || [];
+    const all = [...google, ...dav].sort((a, b) => new Date(a.start) - new Date(b.start));
+    res.json({ events: all });
   });
 
   app.get('/api/calendar/next', (req, res) => {
-    res.json({ event: calendar.getNextEvent() });
+    const google = calendar.getEvents() || [];
+    const dav = caldav.getEvents() || [];
+    const all = [...google, ...dav].sort((a, b) => new Date(a.start) - new Date(b.start));
+    res.json({ event: all[0] || null });
   });
 
   app.get('/api/calendar/status', (req, res) => {
-    res.json({ connected: calendar.isConnected() });
+    res.json({ google: calendar.isConnected(), caldav: caldav.isConnected() });
   });
 
   // --- Mail ---
@@ -829,6 +836,7 @@ sys.stdout.buffer.write(rgb565.astype('>u2').tobytes())
   // Start polling for connected integrations
   spotify.startPolling();
   calendar.startPolling();
+  if (caldav.isConnected()) caldav.startPolling();
   mail.startPolling();
   weather.startPolling();
 

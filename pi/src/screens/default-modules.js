@@ -300,6 +300,85 @@ setInterval(update, 10000);`,
   },
 
   {
+    id: 'calendar',
+    name: 'Calendar',
+    category: 'standard',
+    icon: '',
+    html: `
+<div class="cal-screen">
+  <div class="header">
+    <span class="label">Upcoming</span>
+  </div>
+  <div class="events" id="events"></div>
+</div>`,
+    css: `
+.cal-screen {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+}
+.header .label { font-size: 24px; }
+.events { margin-top: 16px; }
+.event {
+  margin-bottom: 12px;
+  border-left: 3px solid #d2cba6;
+  padding-left: 10px;
+}
+.event-time {
+  font-size: 12px;
+  opacity: 0.5;
+}
+.event-title {
+  font-size: 20px;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+.event.all-day .event-time { display: none; }
+.event.all-day::before {
+  content: 'All day';
+  font-size: 12px;
+  opacity: 0.5;
+}
+.no-events {
+  font-size: 16px;
+  opacity: 0.4;
+  margin-top: 40px;
+}`,
+    js: `
+async function update() {
+  try {
+    const res = await fetch('/api/calendar/events');
+    const data = await res.json();
+    const events = data.events || [];
+    const container = document.getElementById('events');
+    if (!events.length) {
+      container.innerHTML = '<div class="no-events">Nothing scheduled</div>';
+      return;
+    }
+    container.innerHTML = events.slice(0, 5).map(e => {
+      const allDay = e.allDay ? ' all-day' : '';
+      let time = '';
+      if (!e.allDay && e.start) {
+        const d = new Date(e.start);
+        time = d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false});
+        const today = new Date();
+        if (d.toDateString() !== today.toDateString()) {
+          time = d.toLocaleDateString('en-US', {weekday:'short'}) + ' ' + time;
+        }
+      }
+      return '<div class="event' + allDay + '">' +
+        '<div class="event-time">' + time + '</div>' +
+        '<div class="event-title">' + (e.title || '') + '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {}
+}
+update();
+setInterval(update, 60000);`,
+  },
+
+  {
     id: 'weather',
     name: 'Weather',
     category: 'standard',
