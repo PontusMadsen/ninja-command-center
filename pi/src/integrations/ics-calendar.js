@@ -37,6 +37,65 @@ function parseICSDate(str, tzid) {
   return new Date(+y, +m - 1, +d);
 }
 
+function expandRRule(rruleStr, dtStart, now, cutoff) {
+  // Simple RRULE expansion for DAILY, WEEKLY, MONTHLY
+  const parts = {};
+  rruleStr.split(';').forEach(p => {
+    const [k, v] = p.split('=');
+    parts[k] = v;
+  });
+
+  const freq = parts.FREQ;
+  const interval = parseInt(parts.INTERVAL || '1');
+  const byday = parts.BYDAY ? parts.BYDAY.split(',') : null;
+  const count = parts.COUNT ? parseInt(parts.COUNT) : null;
+  const until = parts.UNTIL ? parseICSDate(parts.UNTIL) : null;
+
+  const dayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+  const instances = [];
+  const maxInstances = 100;
+  let current = new Date(dtStart);
+  let generated = 0;
+
+  while (current <= cutoff && generated < maxInstances) {
+    if (until && current > until) break;
+    if (count && generated >= count) break;
+
+    if (current >= now || (current.toDateString() === now.toDateString())) {
+      if (freq === 'WEEKLY' && byday) {
+        // Check if current day matches BYDAY
+        const dayAbbr = ['SU','MO','TU','WE','TH','FR','SA'][current.getDay()];
+        if (byday.includes(dayAbbr)) {
+          instances.push(new Date(current));
+        }
+      } else {
+        instances.push(new Date(current));
+      }
+    }
+
+    generated++;
+    if (freq === 'DAILY') {
+      current = new Date(current.getTime() + interval * 86400000);
+    } else if (freq === 'WEEKLY') {
+      if (!byday) {
+        current = new Date(current.getTime() + interval * 7 * 86400000);
+      } else {
+        current = new Date(current.getTime() + 86400000); // step day by day for BYDAY
+      }
+    } else if (freq === 'MONTHLY') {
+      current = new Date(current.getFullYear(), current.getMonth() + interval, current.getDate(),
+        current.getHours(), current.getMinutes(), current.getSeconds());
+    } else if (freq === 'YEARLY') {
+      current = new Date(current.getFullYear() + interval, current.getMonth(), current.getDate(),
+        current.getHours(), current.getMinutes(), current.getSeconds());
+    } else {
+      break;
+    }
+  }
+
+  return instances;
+}
+
 function parseICS(icsText) {
   const results = [];
   const vevents = icsText.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
@@ -56,23 +115,39 @@ function parseICS(icsText) {
     const dtStartLine = unfolded.match(/^DTSTART[^:]*:(.+)/m);
     const dtEndLine = unfolded.match(/^DTEND[^:]*:(.+)/m);
     const allDay = unfolded.includes('VALUE=DATE') && !unfolded.includes('VALUE=DATE-TIME');
+    const rrule = get('RRULE');
 
     const start = parseICSDate(dtStartLine?.[1]);
     const end = parseICSDate(dtEndLine?.[1]);
+    const duration = (start && end) ? end.getTime() - start.getTime() : 0;
 
-    // Skip past events and events too far in future
-    if (!start || start > cutoff) continue;
-    if (end && end < now) continue;
-    if (!end && start < now && !allDay) continue;
+    const title = (get('SUMMARY') || '(no title)').replace(/\\\\/g, '\\').replace(/\\,/g, ',').replace(/\\n/g, ' ');
+    const location = get('LOCATION')?.replace(/\\\\/g, '\\').replace(/\\,/g, ',') || null;
+    const uid = get('UID') || Math.random().toString(36);
 
-    results.push({
-      id: get('UID') || Math.random().toString(36),
-      title: (get('SUMMARY') || '(no title)').replace(/\\\\/g, '\\').replace(/\\,/g, ',').replace(/\\n/g, ' '),
-      start: start.toISOString(),
-      end: end?.toISOString() || null,
-      allDay,
-      location: get('LOCATION')?.replace(/\\\\/g, '\\').replace(/\\,/g, ',') || null,
-    });
+    if (!start) continue;
+
+    if (rrule) {
+      // Expand recurring events
+      const instances = expandRRule(rrule, start, now, cutoff);
+      for (const inst of instances) {
+        const instEnd = duration ? new Date(inst.getTime() + duration) : null;
+        if (instEnd && instEnd < now) continue;
+        results.push({
+          id: uid + '_' + inst.toISOString(),
+          title, allDay, location,
+          start: inst.toISOString(),
+          end: instEnd?.toISOString() || null,
+        });
+      }
+    } else {
+      // Single event
+      if (start > cutoff) continue;
+      if (end && end < now) continue;
+      if (!end && start < now && !allDay) continue;
+
+      results.push({ id: uid, title, start: start.toISOString(), end: end?.toISOString() || null, allDay, location });
+    }
   }
 
   return results;
