@@ -22,7 +22,7 @@ export function isConnected() {
   return getFeeds().length > 0;
 }
 
-function parseICSDate(str, tzid) {
+function parseICSDate(str) {
   if (!str) return null;
   const match = str.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?/);
   if (!match) return null;
@@ -31,10 +31,17 @@ function parseICSDate(str, tzid) {
     if (str.includes('Z')) {
       return new Date(Date.UTC(+y, +m - 1, +d, +h, +min, +s));
     }
-    // Treat as local time
+    // Treat as local time (TZID handled by treating as local)
     return new Date(+y, +m - 1, +d, +h, +min, +s);
   }
   return new Date(+y, +m - 1, +d);
+}
+
+function parseDTLine(line) {
+  // Parse DTSTART;TZID=Asia/Tokyo:20250815T123000 or DTSTART:20250815T123000Z
+  if (!line) return null;
+  const valPart = line.includes(':') ? line.split(':').pop() : line;
+  return parseICSDate(valPart);
 }
 
 function expandRRule(rruleStr, dtStart, now, cutoff) {
@@ -112,13 +119,13 @@ function parseICS(icsText) {
       return match ? match[1].trim() : null;
     };
 
-    const dtStartLine = unfolded.match(/^DTSTART[^:]*:(.+)/m);
-    const dtEndLine = unfolded.match(/^DTEND[^:]*:(.+)/m);
+    const dtStartMatch = unfolded.match(/^(DTSTART[^:]*:.+)/m);
+    const dtEndMatch = unfolded.match(/^(DTEND[^:]*:.+)/m);
     const allDay = unfolded.includes('VALUE=DATE') && !unfolded.includes('VALUE=DATE-TIME');
     const rrule = get('RRULE');
 
-    const start = parseICSDate(dtStartLine?.[1]);
-    const end = parseICSDate(dtEndLine?.[1]);
+    const start = parseDTLine(dtStartMatch?.[1]);
+    const end = parseDTLine(dtEndMatch?.[1]);
     const duration = (start && end) ? end.getTime() - start.getTime() : 0;
 
     const title = (get('SUMMARY') || '(no title)').replace(/\\\\/g, '\\').replace(/\\,/g, ',').replace(/\\n/g, ' ');
