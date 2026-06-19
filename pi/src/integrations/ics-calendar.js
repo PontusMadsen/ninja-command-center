@@ -60,9 +60,21 @@ function expandRRule(rruleStr, dtStart, now, cutoff) {
 
   const dayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
   const instances = [];
-  const maxInstances = 100;
+  const maxInstances = 200;
   let current = new Date(dtStart);
   let generated = 0;
+
+  // Fast-forward to near 'now' for old recurring events
+  if (freq === 'DAILY' && current < now) {
+    const daysToSkip = Math.floor((now - current) / 86400000) - 7;
+    if (daysToSkip > 0) current = new Date(current.getTime() + daysToSkip * 86400000 * interval);
+  } else if (freq === 'WEEKLY' && current < now) {
+    const weeksToSkip = Math.floor((now - current) / (7 * 86400000)) - 2;
+    if (weeksToSkip > 0) current = new Date(current.getTime() + weeksToSkip * 7 * 86400000);
+  } else if (freq === 'MONTHLY' && current < now) {
+    const monthsToSkip = (now.getFullYear() - current.getFullYear()) * 12 + now.getMonth() - current.getMonth() - 2;
+    if (monthsToSkip > 0) current = new Date(current.getFullYear(), current.getMonth() + monthsToSkip * interval, current.getDate(), current.getHours(), current.getMinutes(), current.getSeconds());
+  }
 
   while (current <= cutoff && generated < maxInstances) {
     if (until && current > until) break;
