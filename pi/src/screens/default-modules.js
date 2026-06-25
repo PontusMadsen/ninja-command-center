@@ -411,17 +411,17 @@ setInterval(update, 60000);`,
 }
 .header .label { font-size: 24px; }
 .temp {
-  font-size: 80px;
-  margin-top: 20px;
-  line-height: 1;
+  font-size: 120px;
+  margin-top: 10px;
+  line-height: .75;
 }
 .desc {
-  font-size: 24px;
-  margin-top: 8px;
+  font-size: 38px;
+  margin-top: 0px;
   text-transform: capitalize;
 }
 .city {
-  font-size: 16px;
+  font-size: 26px;
   margin-top: 4px;
   opacity: 0.5;
 }
@@ -433,7 +433,7 @@ setInterval(update, 60000);`,
 .detail { font-size: 16px; }
 .detail-label {
   display: block;
-  font-size: 12px;
+  font-size: 22px;
   opacity: 0.5;
 }
 .forecast {
@@ -442,10 +442,10 @@ setInterval(update, 60000);`,
   gap: 8px;
 }
 .fc-item {
-  font-size: 12px;
+  font-size: 22px;
   opacity: 0.6;
 }
-.fc-item .fc-temp { font-size: 16px; opacity: 1; }`,
+.fc-item .fc-temp { font-size: 26px; opacity: 1; }`,
     js: `
 async function update() {
   try {
