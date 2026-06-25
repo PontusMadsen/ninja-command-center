@@ -69,6 +69,8 @@ async function getAccessToken() {
  * Synthesize text via Google Cloud TTS (Japanese voice speaking English).
  * Falls back to Piper if Google fails.
  */
+let ttsCounter = 0;
+
 export async function synthesize(text) {
   if (!text) return null;
 
@@ -78,6 +80,8 @@ export async function synthesize(text) {
     .replace(/\b(huh|hmm+|uh|eh|meh|pff+)\b/gi, '')
     .trim();
   if (!clean) return null;
+
+  const outFile = `/tmp/ninja_tts_${ttsCounter++}.wav`;
 
   // Try Google Cloud TTS
   try {
@@ -114,11 +118,11 @@ export async function synthesize(text) {
 
     const data = await resp.json();
     const audioBuffer = Buffer.from(data.audioContent, 'base64');
-    writeFileSync('/tmp/ninja_tts.wav', audioBuffer);
+    writeFileSync(outFile, audioBuffer);
 
     const duration = Date.now() - startTime;
     logger.info({ duration, engine: 'google', voice: cfg.voice }, 'TTS done');
-    return '/tmp/ninja_tts.wav';
+    return outFile;
   } catch (e) {
     logger.warn({ err: e.message }, 'Google TTS failed, falling back to Piper');
   }
@@ -127,11 +131,11 @@ export async function synthesize(text) {
   try {
     const escaped = clean.replace(/"/g, '\\"');
     execSync(
-      `echo "${escaped}" | ${PIPER_BIN} --model ${PIPER_MODEL} --output_file /tmp/ninja_tts.wav 2>/dev/null`,
+      `echo "${escaped}" | ${PIPER_BIN} --model ${PIPER_MODEL} --output_file ${outFile} 2>/dev/null`,
       { timeout: 30000 }
     );
     logger.info({ engine: 'piper' }, 'TTS done (fallback)');
-    return '/tmp/ninja_tts.wav';
+    return outFile;
   } catch (e) {
     logger.error({ err: e.message }, 'TTS failed completely');
     return null;

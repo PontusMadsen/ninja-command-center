@@ -67,7 +67,18 @@ async function doSingleTurn(text) {
   let streamDone = false;
   let resolveNext = null;
 
+  // --- Latency timestamps ---
+  const t0 = Date.now(); // (a) user text sent to Claude
+  let tFirstToken = 0;   // (b) first Claude token/sentence received
+  let tFirstTTS = 0;     // (c) first TTS request sent
+  let tFirstPlay = 0;    // (d) first audio playback started
+  logger.info({ t0 }, '⏱ [a] Claude request sent');
+
   const onSentence = (sentence) => {
+    if (!tFirstToken) {
+      tFirstToken = Date.now();
+      logger.info({ elapsed: tFirstToken - t0 }, '⏱ [b] First Claude sentence received (+%dms)', tFirstToken - t0);
+    }
     logger.info({ sentence: sentence.substring(0, 50) }, 'Sentence ready');
     fullText += sentence + ' ';
     sentenceQueue.push(sentence);
@@ -85,28 +96,48 @@ async function doSingleTurn(text) {
     if (resolveNext) { resolveNext(); resolveNext = null; }
   });
 
-  // Play sentences as they arrive — TTS starts on first sentence
-  // while the LLM is still generating the rest
-  let idx = 0;
-  let started = false;
-  while (true) {
-    if (idx >= sentenceQueue.length && !streamDone) {
-      await new Promise(r => { resolveNext = r; });
-    }
-    if (idx >= sentenceQueue.length && streamDone) break;
-    if (idx < sentenceQueue.length) {
-      if (!started) { setFace('talking'); started = true; }
-      try {
-        const file = await synthesize(sentenceQueue[idx]);
-        if (file) await playFile(file, AUDIO_DEVICE);
-      } catch (e) {
-        logger.warn({ err: e.message }, 'Sentence TTS failed');
+  // Wait for Claude to finish, then fire all TTS in parallel, play in order
+  await streamPromise;
+
+  if (sentenceQueue.length > 0) {
+    setFace('talking');
+    tFirstTTS = Date.now();
+    logger.info({ elapsed: tFirstTTS - t0, sinceClaude: tFirstTTS - tFirstToken, sentences: sentenceQueue.length },
+      '⏱ [c] All TTS requests fired in parallel (+%dms total)', tFirstTTS - t0);
+
+    // Fire all TTS calls simultaneously — each writes unique file
+    const ttsPromises = sentenceQueue.map(s => synthesize(s).catch(e => {
+      logger.warn({ err: e.message }, 'Sentence TTS failed');
+      return null;
+    }));
+
+    // Play in order as each resolves
+    for (let i = 0; i < ttsPromises.length; i++) {
+      const file = await ttsPromises[i];
+      if (file) {
+        if (!tFirstPlay) {
+          tFirstPlay = Date.now();
+          logger.info({ elapsed: tFirstPlay - t0, sinceTTS: tFirstPlay - tFirstTTS },
+            '⏱ [d] First audio playback started (+%dms total, +%dms since TTS)', tFirstPlay - t0, tFirstPlay - tFirstTTS);
+        }
+        await playFile(file, AUDIO_DEVICE);
       }
-      idx++;
     }
   }
 
-  await streamPromise;
+  // --- Latency summary ---
+  const tEnd = Date.now();
+  logger.info({
+    total: tEnd - t0,
+    claudeWait: tFirstToken ? tFirstToken - t0 : null,
+    ttsWait: tFirstTTS && tFirstToken ? tFirstTTS - tFirstToken : null,
+    playWait: tFirstPlay && tFirstTTS ? tFirstPlay - tFirstTTS : null,
+    playbackTotal: tFirstPlay ? tEnd - tFirstPlay : null,
+  }, '⏱ LATENCY SUMMARY — Claude:%dms → TTS:%dms → Play:%dms — Total:%dms',
+    tFirstToken ? tFirstToken - t0 : 0,
+    tFirstTTS && tFirstToken ? tFirstTTS - tFirstToken : 0,
+    tFirstPlay && tFirstTTS ? tFirstPlay - tFirstTTS : 0,
+    tEnd - t0);
 
   if (!result) {
     setFace('confused');
