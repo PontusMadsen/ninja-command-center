@@ -9,3 +9,4 @@ google-calendar-key.json
 esp32/*/src/config.h
 .pio/
 .DS_Store
+brag-output/

@@ -61,7 +61,7 @@ export default class IdleBehaviors {
     // Phase 2: sleepy (8-10 min idle)
     if (idleTime > SLEEPY_TIME && !this.sleepy && !this.sleeping) {
       this.sleepy = true;
-      this.setFace('sleepy_1');
+      this.setFace('sleepy');
       logger.info('Ninja getting sleepy');
       this.scheduleNext();
       return;
@@ -75,8 +75,8 @@ export default class IdleBehaviors {
     // If sleepy, only do sleepy animations
     if (this.sleepy) {
       if (Math.random() > 0.7) {
-        this.setFace('blink');
-        setTimeout(() => this.setFace('sleepy_1'), 2000);
+        this.setFace('idle');
+        setTimeout(() => this.setFace('sleepy'), 2000);
       }
       this.scheduleNext();
       return;

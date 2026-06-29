@@ -147,7 +147,7 @@ export default class NudgeScheduler {
   }
 
   async deliverMessage(message, category) {
-    this.setFace('squint');
+    this.setFace('focused');
     try {
       const file = await this.synthesize(message);
       if (file) {

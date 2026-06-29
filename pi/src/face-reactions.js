@@ -6,60 +6,56 @@
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 // Task events
-export function taskComplete() { return pick(['love', 'love2', 'happy_2', 'hehe']); }
-export function allTasksDone() { return pick(['star', 'wow']); }
-export function taskAdded() { return 'squint'; }
+export function taskComplete() { return pick(['happy', 'hehe']); }
+export function allTasksDone() { return pick(['surprised', 'happy']); }
+export function taskAdded() { return 'focused'; }
 
 // Habit events
-export function habitChecked() { return pick(['smile', 'happy_2', 'hehe']); }
-export function allHabitsDone() { return pick(['star', 'wow', 'hand_some']); }
-export function streakMilestone() { return 'star'; }
+export function habitChecked() { return pick(['hehe', 'happy']); }
+export function allHabitsDone() { return pick(['surprised', 'happy']); }
+export function streakMilestone() { return 'surprised'; }
 
 // Focus events
-export function focusStart() { return 'squint'; }
-export function focusComplete() { return pick(['star', 'wow', 'happy_2']); }
-export function breakStart() { return pick(['music', 'sakura']); }
+export function focusStart() { return 'focused'; }
+export function focusComplete() { return pick(['surprised', 'happy']); }
+export function breakStart() { return pick(['happy', 'idle']); }
 
 // Angry keywords in voice response
-export function angryReaction() { return pick(['angry', 'angry2', 'angry3', 'fumin', 'yell']); }
+export function angryReaction() { return pick(['angry', 'yell']); }
 
 // Voice pipeline
-export function wakeWordDetected() { return 'WHAT'; }
-export function listening() { return 'WHAT'; }
-export function thinking() { return 'squint'; }
+export function wakeWordDetected() { return 'surprised'; }
+export function listening() { return 'focused'; }
+export function thinking() { return 'confused'; }
 export function speaking() { return 'talking'; }
 
 // Conversation moods from Claude
 const MOOD_MAP = {
-  idle: 'default',
-  happy: pick(['smile', 'happy_2', 'hehe']),
-  sad: pick(['cry', 'cry2']),
-  angry: pick(['angry', 'angry2', 'angry3']),
-  surprised: 'WHAT',
+  idle: 'idle',
+  happy: 'happy',
+  sad: 'sad',
+  angry: 'angry',
+  surprised: 'surprised',
   sleeping: 'sleeping',
-  confused: pick(['dizzy', 'WHAT']),
-  focused: 'squint',
+  confused: 'confused',
+  focused: 'focused',
   scared: 'scared',
   talking: 'talking',
 };
 
 export function moodFace(mood) {
-  // Re-randomize each call for sad/happy/angry
-  if (mood === 'happy') return pick(['smile', 'happy_2', 'hehe']);
-  if (mood === 'sad') return pick(['cry', 'cry2']);
-  if (mood === 'angry') return pick(['angry', 'angry2', 'angry3']);
-  if (mood === 'confused') return pick(['dizzy', 'WHAT']);
+  if (mood === 'confused') return pick(['dizzy', 'confused']);
   return MOOD_MAP[mood] || mood;
 }
 
-// Idle — used by idle-behaviors.js
-export const FUN_ANIMS = ['up_size_down', 'sakura', 'rain', 'hehe', 'hihi', 'bee', 'wow', 'star', 'hand_some', 'music'];
+// Idle — used by idle-behaviors.js (directory names for playOnce)
+export const FUN_ANIMS = ['ninja_happy', 'ninja_surprised', 'ninja_dizzy', 'smile', 'ninja_confused'];
 export const QUICK_FACES = [
-  { state: 'dizzy', duration: 1500 },
-  { state: 'WHAT', duration: 800 },
+  { state: 'ninja_dizzy', duration: 1500 },
+  { state: 'ninja_surprised', duration: 800 },
   { state: 'smile', duration: 1200 },
-  { state: 'scared', duration: 1000 },
-  { state: 'happy_2', duration: 1000 },
+  { state: 'ninja_scared', duration: 1000 },
+  { state: 'ninja_happy', duration: 1000 },
 ];
 
 // Angry keywords to detect in responses
