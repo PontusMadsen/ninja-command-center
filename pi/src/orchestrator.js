@@ -82,7 +82,7 @@ async function doSingleTurn(text) {
     logger.info({ sentence: sentence.substring(0, 50) }, 'Sentence ready');
     fullText += sentence + ' ';
     sentenceQueue.push(sentence);
-    // Show ninja speech on right screen (via Python renderer — reliable during voice turn)
+    // Show ninja speech on right screen
     if (sendCommand) {
       sendCommand({ screen: 2, type: 'ninja_says', text: fullText.trim() });
     }
@@ -329,7 +329,7 @@ async function main() {
     get wakeWordActive() { return wakeListener?.running || false; },
     get voiceActive() { return voiceActive; },
     conversationLog,
-    framesDir: join(__dirname, '..', 'frames-pitft'),
+    framesDir: join(__dirname, '..', 'frames-new'),
     setFace,
     playOnce,
     startWakeWord: () => wakeListener?.start(),

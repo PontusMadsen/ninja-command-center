@@ -93,17 +93,19 @@ class ILI9341_SPI:
 
 
 class ILI9341_FB:
-    """ILI9341 driven via /dev/fb0 (DRM mipi-dbi kernel driver)."""
+    """ILI9341 driven via /dev/fb0 (DRM mipi-dbi kernel driver).
+
+    Uses single os.write() syscall for atomic transfer to the DRM driver.
+    """
 
     def __init__(self, fb_dev='/dev/fb0'):
         self.fb_dev = fb_dev
-        self.fb = open(fb_dev, 'r+b')
+        self.fd = os.open(fb_dev, os.O_RDWR)
 
     def push_frame(self, data):
         """Push 320×240 RGB565 little-endian frame data."""
-        self.fb.seek(0)
-        self.fb.write(data)
-        self.fb.flush()
+        os.lseek(self.fd, 0, os.SEEK_SET)
+        os.write(self.fd, data)
 
     def clear(self):
         self.push_frame(b'\x00\x00' * (SCREEN_W * SCREEN_H))
@@ -569,14 +571,14 @@ _gif_threads = {}  # screen_idx → thread
 _gif_stop = {}     # screen_idx → Event
 
 
-def _gif_loop(screen_idx, frames, delays, screens, converter):
-    """Loop GIF frames on a screen until stopped."""
+def _gif_loop(screen_idx, raw_frames, delays, screens):
+    """Loop pre-converted RGB565 frames on a screen until stopped."""
     stop_event = _gif_stop[screen_idx]
     while not stop_event.is_set():
-        for frame, delay in zip(frames, delays):
+        for raw, delay in zip(raw_frames, delays):
             if stop_event.is_set():
                 break
-            screens[screen_idx].push_frame(converter(frame))
+            screens[screen_idx].push_frame(raw)
             stop_event.wait(delay / 1000.0)
 
 
@@ -588,6 +590,45 @@ def stop_gif(screen_idx):
         _gif_threads[screen_idx].join(timeout=2)
         del _gif_threads[screen_idx]
         del _gif_stop[screen_idx]
+
+
+def _replace_bg(img, old_rgb=(0, 56, 57), threshold=30):
+    """Replace near-match background color with black."""
+    arr = np.array(img, dtype=np.int16)
+    dist = np.sqrt(
+        (arr[:,:,0] - old_rgb[0])**2 +
+        (arr[:,:,1] - old_rgb[1])**2 +
+        (arr[:,:,2] - old_rgb[2])**2
+    )
+    mask = dist < threshold
+    result = np.array(img)
+    result[mask] = [0, 0, 0]
+    return Image.fromarray(result)
+
+
+def _extract_gif_frames(gif, min_delay=200):
+    """Extract frames and delays from a PIL GIF image."""
+    frames = []
+    delays = []
+    try:
+        while True:
+            frame = gif.copy().convert('RGB').resize((SCREEN_W, SCREEN_H))
+            frame = _replace_bg(frame)
+            frames.append(frame)
+            delays.append(max(gif.info.get('duration', 100), min_delay))
+            gif.seek(gif.tell() + 1)
+    except EOFError:
+        pass
+    return frames, delays
+
+
+def _start_gif_loop(screen_idx, frames, delays, screens, converter):
+    """Pre-convert frames to RGB565 and start the loop thread."""
+    raw_frames = [converter(f) for f in frames]
+    _gif_stop[screen_idx] = threading.Event()
+    t = threading.Thread(target=_gif_loop, args=(screen_idx, raw_frames, delays, screens), daemon=True)
+    _gif_threads[screen_idx] = t
+    t.start()
 
 
 def start_gif(screen_idx, url, screens, converter):
@@ -603,27 +644,33 @@ def start_gif(screen_idx, url, screens, converter):
         sys.stderr.flush()
         return
 
-    frames = []
-    delays = []
-    try:
-        while True:
-            frame = gif.copy().convert('RGB').resize((SCREEN_W, SCREEN_H))
-            frames.append(frame)
-            delays.append(gif.info.get('duration', 100))
-            gif.seek(gif.tell() + 1)
-    except EOFError:
-        pass
-
+    frames, delays = _extract_gif_frames(gif)
     if not frames:
         return
 
     sys.stderr.write(f'gif: {len(frames)} frames from {url[:60]}\n')
     sys.stderr.flush()
+    _start_gif_loop(screen_idx, frames, delays, screens, converter)
 
-    _gif_stop[screen_idx] = threading.Event()
-    t = threading.Thread(target=_gif_loop, args=(screen_idx, frames, delays, screens, converter), daemon=True)
-    _gif_threads[screen_idx] = t
-    t.start()
+
+def start_local_gif(screen_idx, path, screens, converter):
+    """Load a local GIF file and loop it on a screen."""
+    stop_gif(screen_idx)
+
+    try:
+        gif = Image.open(path)
+    except Exception as e:
+        sys.stderr.write(f'local gif error: {e}\n')
+        sys.stderr.flush()
+        return
+
+    frames, delays = _extract_gif_frames(gif)
+    if not frames:
+        return
+
+    sys.stderr.write(f'local gif: {len(frames)} frames from {os.path.basename(path)}\n')
+    sys.stderr.flush()
+    _start_gif_loop(screen_idx, frames, delays, screens, converter)
 
 
 # --- Crossscreen playback ---
@@ -728,6 +775,10 @@ def main():
                 idx = int(screen)
                 if 0 <= idx < len(screens):
                     screens[idx].push_frame(converters[idx](img))
+            elif cmd_type == 'local_gif':
+                idx = int(screen)
+                if 0 <= idx < len(screens):
+                    start_local_gif(idx, cmd.get('path', ''), screens, converters[idx])
             elif cmd_type == 'gif':
                 idx = int(screen)
                 if 0 <= idx < len(screens):
