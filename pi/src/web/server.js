@@ -652,17 +652,19 @@ export async function startWebServer(state) {
   });
 
   app.post('/api/update', (req, res) => {
-    exec('cd ' + REPO_ROOT + ' && git checkout -- . && git clean -fd && git pull --ff-only origin main', (err, stdout, stderr) => {
-      if (err) return res.json({ ok: false, output: stderr });
+    res.json({ ok: true, output: 'Update started', restarting: true });
+    exec('cd ' + REPO_ROOT + ' && git checkout -- . && git clean -fd && git pull --ff-only origin main', { timeout: 120000 }, (err, stdout, stderr) => {
+      if (err) {
+        logger.warn({ stderr }, 'Git pull failed');
+        return;
+      }
       const output = stdout.trim();
       logger.info({ output }, 'Git pull');
-      if (output.includes('Already up to date')) {
-        return res.json({ ok: true, output, restarting: false });
+      if (!output.includes('Already up to date')) {
+        setTimeout(() => {
+          exec('sudo systemctl restart ninja-hub.service');
+        }, 2000);
       }
-      res.json({ ok: true, output, restarting: true });
-      setTimeout(() => {
-        exec('sudo systemctl restart ninja-hub.service');
-      }, 2000);
     });
   });
 
