@@ -7,8 +7,10 @@ import logger from '../logger.js';
 export async function playFile(filePath, device = 'plughw:0,0') {
   return new Promise((resolve, reject) => {
     const player = spawn('aplay', ['-D', device, filePath]);
+    let stderr = '';
+    player.stderr.on('data', d => { stderr += d.toString(); });
     player.on('close', (code) => {
-      if (code !== 0) logger.warn({ code }, 'aplay exit non-zero');
+      if (code !== 0) logger.warn({ code, stderr: stderr.trim(), device, filePath }, 'aplay exit non-zero');
       resolve();
     });
     player.on('error', reject);

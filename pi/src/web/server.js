@@ -132,9 +132,7 @@ export async function startWebServer(state) {
   app.get('/api/volume', (req, res) => {
     try {
       let out;
-      try { out = execSync('amixer -c UACDemoV10 get PCM 2>/dev/null').toString(); } catch {
-        out = execSync('amixer -c 0 get Speaker 2>/dev/null').toString();
-      }
+      out = execSync('amixer -c 0 get Speaker 2>/dev/null').toString();
       const match = out.match(/\[(\d+)%\]/);
       res.json({ volume: match ? parseInt(match[1]) : 50 });
     } catch {
@@ -146,9 +144,7 @@ export async function startWebServer(state) {
   try {
     const savedVol = JSON.parse(readFileSync(join(PI_ROOT, 'data/volume.json'), 'utf-8'));
     if (savedVol.volume != null) {
-      try { execSync(`amixer -c UACDemoV10 set PCM ${savedVol.volume}%`); } catch {
-        try { execSync(`amixer -c 0 set Speaker ${savedVol.volume}%`); } catch {}
-      }
+      try { execSync(`amixer -c 0 set Speaker ${savedVol.volume}%`); } catch {}
       logger.info({ volume: savedVol.volume }, 'Volume restored');
     }
   } catch {}
@@ -158,9 +154,7 @@ export async function startWebServer(state) {
     if (volume == null || volume < 0 || volume > 100) return res.status(400).json({ error: 'Invalid volume' });
     try {
       // Try both card types
-      try { execSync(`amixer -c UACDemoV10 set PCM ${volume}%`); } catch {
-        execSync(`amixer -c 0 set Speaker ${volume}%`);
-      }
+      execSync(`amixer -c 0 set Speaker ${volume}%`);
       // Save for next boot
       writeFileSync(join(PI_ROOT, 'data/volume.json'), JSON.stringify({ volume }));
       // Play volume feedback with TTS voice
@@ -168,7 +162,7 @@ export async function startWebServer(state) {
         try {
           const { synthesize } = await import('../tts/voicevox.js');
           const { playFile } = await import('../audio/playback.js');
-          const audioDevice = process.env.AUDIO_DEVICE || 'plughw:UACDemoV10,0';
+          const audioDevice = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
           const file = await synthesize(`${volume}%`);
           if (file) await playFile(file, audioDevice);
         } catch {}
@@ -340,13 +334,13 @@ export async function startWebServer(state) {
     try {
       const { synthesize } = await import('../tts/voicevox.js');
       const { playFile } = await import('../audio/playback.js');
-      const audioDevice = process.env.AUDIO_DEVICE || 'plughw:UACDemoV10,0';
+      const audioDevice = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
       const file = await synthesize('I give you happy poopy time');
       if (file) await playFile(file, audioDevice);
       res.json({ ok: true });
     } catch (e) {
       // Fallback to espeak
-      const audioDevice = process.env.AUDIO_DEVICE || 'plughw:UACDemoV10,0';
+      const audioDevice = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
       exec(`espeak-ng "Testing speaker" --stdout | aplay -D ${audioDevice}`, (err) => {
         res.json({ ok: !err });
       });
@@ -355,7 +349,7 @@ export async function startWebServer(state) {
 
   app.post('/api/test/mic', (req, res) => {
     const micDevice = process.env.MIC_DEVICE || 'plughw:sndrpigooglevoi,0';
-    const audioDevice = process.env.AUDIO_DEVICE || 'plughw:UACDemoV10,0';
+    const audioDevice = process.env.AUDIO_DEVICE || 'plughw:wm8960soundcard,0';
     exec(`arecord -D ${micDevice} -f S16_LE -r 16000 -c 1 -d 1 /tmp/test_mic.wav`, (err) => {
       if (err) return res.json({ ok: false });
       exec(`aplay -D ${audioDevice} /tmp/test_mic.wav`, () => {
@@ -527,7 +521,7 @@ export async function startWebServer(state) {
       for (const sentence of sentences) {
         try {
           const file = await synthesize(sentence);
-          if (file) await playFile(file, 'plughw:UACDemoV10,0');
+          if (file) await playFile(file, 'plughw:wm8960soundcard,0');
         } catch {}
       }
 
@@ -573,7 +567,7 @@ export async function startWebServer(state) {
       for (const sentence of sentences) {
         try {
           const file = await synthesize(sentence);
-          if (file) await playFile(file, 'plughw:UACDemoV10,0');
+          if (file) await playFile(file, 'plughw:wm8960soundcard,0');
         } catch {}
       }
 
