@@ -359,7 +359,6 @@ pi/
 - [ ] Touch input (XPT2046) — swipe between modules, tap to interact
 - [ ] Pomodoro timer module
 - [ ] CalDAV calendar module
-- [ ] Custom TTS voice (training ninja voice model)
 - [ ] Web UI drag & drop for screen assignment
 - [ ] Module sharing / marketplace
 
