@@ -351,13 +351,13 @@ pi/
 - [x] Ninja subtitles during conversation
 - [x] Display color calibration (brightness/saturation per screen)
 - [x] LanaPixel pixel font throughout
+- [x] Custom pixel art ninja animations (12 animations, 60 frames each)
+- [x] Crossscreen moments — all 3 displays as one 720×320 canvas
+- [x] Weather module
 
 ### Next
-- [x] Custom pixel art ninja animations (12 animations, 60 frames each)
 - [ ] Touch input (XPT2046) — swipe between modules, tap to interact
-- [x] Crossscreen moments — all 3 displays as one 720×320 canvas
 - [ ] Pomodoro timer module
-- [ ] Weather module
 - [ ] CalDAV calendar module
 - [ ] Custom TTS voice (training ninja voice model)
 - [ ] Web UI drag & drop for screen assignment
