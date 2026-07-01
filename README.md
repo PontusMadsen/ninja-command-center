@@ -15,9 +15,9 @@ Three 2.8" ILI9341 TFT displays sit side-by-side in a 3D-printed enclosure, each
 ## The Ninja
 
 <p align="center">
-  <img src="pi/assets/readme/ninja-idle.gif" width="120" alt="Idle">
-  <img src="pi/assets/readme/ninja-talking.gif" width="120" alt="Talking">
-  <img src="pi/assets/readme/ninja-focused.gif" width="120" alt="Focused">
+  <img src="pi/gifs/ninja_idle.gif" width="120" alt="Idle">
+  <img src="pi/gifs/ninja_talking.gif" width="120" alt="Talking">
+  <img src="pi/gifs/ninja_listening.gif" width="120" alt="Listening">
 </p>
 
 The ninja has 12 animated states — idle, talking, listening, angry, happy, confused, sleeping, surprised, scared, dizzy, drowsy, and smile. Each animation has 60 hand-drawn frames. He reacts to wake words, voice conversations, task completions, and idle time. After 8 minutes of silence he gets drowsy. After 10, he falls asleep.
