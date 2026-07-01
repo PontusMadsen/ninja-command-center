@@ -355,7 +355,7 @@ pi/
 ### Next
 - [x] Custom pixel art ninja animations (12 animations, 60 frames each)
 - [ ] Touch input (XPT2046) — swipe between modules, tap to interact
-- [ ] Crossscreen moments — all 3 displays as one 720×320 canvas
+- [x] Crossscreen moments — all 3 displays as one 720×320 canvas
 - [ ] Pomodoro timer module
 - [ ] Weather module
 - [ ] CalDAV calendar module
