@@ -20,7 +20,7 @@ Three 2.8" ILI9341 TFT displays sit side-by-side in a 3D-printed enclosure, each
   <img src="pi/assets/readme/ninja-focused.gif" width="120" alt="Focused">
 </p>
 
-The ninja has multiple animated states — idle, talking, focused, angry, happy, confused, sleeping, and more. He reacts to wake words, voice conversations, task completions, and idle time. After 8 minutes of silence he gets sleepy. After 10, he falls asleep.
+The ninja has 12 animated states — idle, talking, listening, angry, happy, confused, sleeping, surprised, scared, dizzy, drowsy, and smile. Each animation has 60 hand-drawn frames. He reacts to wake words, voice conversations, task completions, and idle time. After 8 minutes of silence he gets drowsy. After 10, he falls asleep.
 
 ## Voice Commands
 
@@ -330,7 +330,7 @@ pi/
   assets/
     fonts/lanapixel.ttf
     icons/                       # Source icon PNGs
-  frames-pitft/                  # Face animation frames (JPEG sequences)
+  frames-new/                    # Face animation frames (60 JPEG per animation)
   data/                          # Runtime data (tasks, habits, modules) — gitignored
   systemd/ninja-hub.service      # systemd service definition
 ```
@@ -353,7 +353,7 @@ pi/
 - [x] LanaPixel pixel font throughout
 
 ### Next
-- [ ] Custom pixel art ninja animations (replacing placeholder art)
+- [x] Custom pixel art ninja animations (12 animations, 60 frames each)
 - [ ] Touch input (XPT2046) — swipe between modules, tap to interact
 - [ ] Crossscreen moments — all 3 displays as one 720×320 canvas
 - [ ] Pomodoro timer module
@@ -378,7 +378,7 @@ The ninja speaks English with a thick Japanese accent — drops articles, uses s
 ## Credits
 
 - Ninja character & pixel art by [Pontus Madsen](https://littlegamers.com)
-- Built with [Claude](https://anthropic.com), [Groq](https://groq.com), [Google Cloud TTS](https://cloud.google.com/text-to-speech), [OpenWakeWord](https://github.com/dscripka/openWakeWord)
+- Built with [Groq](https://groq.com), [Google Cloud TTS](https://cloud.google.com/text-to-speech), [OpenWakeWord](https://github.com/dscripka/openWakeWord)
 - [LanaPixel](https://opengameart.org/content/lanapixel-localization-friendly-pixel-font) font by eishiya
 - Triptych concept inspired by [@dokidek_](https://instagram.com/dokidek_)
 
