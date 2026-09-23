@@ -80,6 +80,10 @@ export function isConnected() {
 
 export function startPolling(intervalMs = 30000) {
   if (pollingTimer) return;
+  if (!isConnected()) {
+    console.log('[mail] not connected, skipping polling');
+    return;
+  }
   fetchMail();
   pollingTimer = setInterval(fetchMail, intervalMs);
   console.log(`[mail] polling started (${intervalMs}ms)`);
